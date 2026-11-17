@@ -1,0 +1,15 @@
+# Servidor web y API
+fastapi
+uvicorn[standard]
+python-multipart        # recibir archivos (fotos de equipos) y formularios
+
+# Base de datos PostgreSQL
+sqlalchemy
+psycopg[binary]
+
+# Configuración desde el archivo .env
+pydantic-settings
+
+# Seguridad: hash de contraseñas y sesiones con JWT
+bcrypt
+pyjwt

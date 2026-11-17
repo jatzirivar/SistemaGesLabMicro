@@ -1,0 +1,17 @@
+# Entorno virtual de Python
+.venv/
+
+# Archivos compilados de Python
+__pycache__/
+*.pyc
+
+# Configuración local con contraseñas
+.env
+
+# Archivos subidos (fotos, manuales); se conserva solo la carpeta
+uploads/*
+!uploads/.gitkeep
+
+# Editores
+.vscode/
+.idea/
