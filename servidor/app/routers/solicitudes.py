@@ -1,5 +1,5 @@
 """Solicitudes del estudiante: /api/solicitudes y /api/estudiante/panel."""
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import obtener_sesion
@@ -15,7 +15,7 @@ from app.schemas.prestamos import (
     SolicitudCreada,
 )
 from app.schemas.ventanilla import HistorialEstudiante
-from app.services import sanciones_servicio
+from app.services import reportes_pdf, sanciones_servicio
 from app.services import solicitudes_servicio as servicio
 
 router = APIRouter(prefix="/api/solicitudes", tags=["Solicitudes (estudiante)"])
@@ -80,5 +80,16 @@ def prorroga(folio: str, usuario: UsuarioSesion = Depends(requerir_estudiante), 
 @router.get("/{folio}/comprobante", response_model=Comprobante)
 def comprobante(folio: str, usuario: UsuarioSesion = Depends(requerir_estudiante),
                 db: Session = Depends(obtener_sesion)):
-    """Datos del comprobante de retiro (SRS 7.3). El PDF se agrega en el módulo de reportes."""
+    """Datos del comprobante de retiro para la vista previa (SRS 7.3)."""
     return servicio.comprobante(db, usuario, folio)
+
+
+@router.get("/{folio}/comprobante/pdf", response_class=Response,
+            responses={200: {"content": {"application/pdf": {}}, "description": "Archivo PDF"}})
+def comprobante_pdf(folio: str, usuario: UsuarioSesion = Depends(requerir_estudiante),
+                    db: Session = Depends(obtener_sesion)):
+    """Descarga del comprobante en PDF (SRS 7.2). No incluye el PIN."""
+    datos = servicio.comprobante(db, usuario, folio)
+    pdf = reportes_pdf.comprobante(datos)
+    return Response(content=pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="comprobante_{datos["folio"]}.pdf"'})

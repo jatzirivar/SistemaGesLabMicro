@@ -13,6 +13,9 @@ tzdata
 # Configuración desde el archivo .env
 pydantic-settings
 
+# Reportes en PDF (comprobante e historial)
+reportlab
+
 # Seguridad: hash de contraseñas y sesiones con JWT
 bcrypt
 pyjwt

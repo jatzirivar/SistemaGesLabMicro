@@ -153,3 +153,24 @@ Reglas:
 - El préstamo pasa a **Devuelta** solo si todos los equipos quedan en **Bueno**. Si no, queda **abierto**
   (cuenta como adeudo del alumno) hasta resolver cada equipo pendiente con la ruta `.../resolver`.
   Resolver no retira la sanción ni cambia el estado del equipo: eso se hace en sanciones e inventario.
+
+## Módulo 5 · Administración, configuración y reportes
+
+> Requiere `pip install -r requirements.txt` (agrega `reportlab` para los PDF) y ejecutar una vez
+> `06_correo_cualquier_dominio.sql` y `07_dias_inhabiles_2026_2027.sql`.
+
+**Encargado**
+
+| Método | Ruta | Qué hace | SRS |
+|---|---|---|---|
+| GET | `/api/encargado/estudiantes?buscar=` | Buscar alumnos por nombre o boleta | 8.13 |
+| POST | `/api/encargado/estudiantes` | Registro manual (cualquier correo); el alumno crea su contraseña con «¿Olvidaste tu contraseña?» | 8.13 |
+| GET | `/api/encargado/estudiantes/{id}` | Historial de préstamos, incidencias y sanciones | 8.13 |
+| PATCH | `/api/encargado/estudiantes/{id}/suspension` | Bloquear / desbloquear por adeudos | 8.13 |
+| GET/POST | `/api/encargado/encargados` | Ver / dar de alta encargados | — |
+| GET/PUT | `/api/encargado/configuracion` | Horarios, duración máxima, límite de equipos, tolerancia | 8.14 |
+| GET/POST/DELETE | `/api/encargado/dias-inhabiles` | Días inhábiles (avisa solicitudes afectadas) | 8.14 |
+| GET | `/api/encargado/historial` | Historial con filtros (fechas, alumno, equipo, estado) | 8.15 |
+| GET | `/api/encargado/historial/pdf` | Exportación a PDF con los mismos filtros | 8.15 |
+
+**Estudiante:** `GET /api/solicitudes/{folio}/comprobante/pdf` → comprobante de retiro en PDF (SRS 7.2, sin PIN).

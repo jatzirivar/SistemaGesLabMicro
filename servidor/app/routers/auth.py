@@ -61,7 +61,7 @@ def cambiar_contrasena(
 
 @router.post("/restablecer/verificar", response_model=Mensaje)
 def verificar_correo(datos: VerificarCorreo, db: Session = Depends(obtener_sesion)):
-    """Paso 1 del restablecimiento: valida dominio y que el correo exista (SRS 1.3).
+    """Paso 1 del restablecimiento: valida que el correo esté registrado (SRS 1.3).
 
     - 404: "Correo no registrado"
     """

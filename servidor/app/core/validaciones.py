@@ -1,7 +1,6 @@
 """Reglas de validación reutilizables. Lanzan ValueError con mensajes en español."""
 import re
 
-from app.core.constantes import DOMINIOS_AUTORIZADOS
 
 _PATRON_NOMBRE = re.compile(r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' .-]+$")
 _PATRON_BOLETA = re.compile(r"^[0-9]{10}$")
@@ -37,17 +36,6 @@ def validar_formato_correo(valor: str) -> str:
     valor = normalizar_correo(valor)
     if len(valor) > 120 or not _PATRON_CORREO.match(valor):
         raise ValueError("El correo electrónico no tiene un formato válido")
-    return valor
-
-
-def dominio_autorizado(correo: str) -> bool:
-    return normalizar_correo(correo).rsplit("@", 1)[-1] in DOMINIOS_AUTORIZADOS
-
-
-def validar_correo_institucional(valor: str) -> str:
-    valor = validar_formato_correo(valor)
-    if not dominio_autorizado(valor):
-        raise ValueError("El correo debe ser @gmail.com, @alumno.ipn.mx o @ipn.mx")
     return valor
 
 

@@ -18,7 +18,7 @@ de 1 hora y un tope de 4 horas.
 | Capa | Tecnología |
 |---|---|
 | Frontend | React + Tailwind CSS *(en desarrollo)* |
-| Backend | Python 3.13 + FastAPI (API REST con JSON) |
+| Backend | Python 3.13 + FastAPI (API REST con JSON), reportes PDF con reportlab |
 | Base de datos | PostgreSQL |
 | Seguridad | Contraseñas con bcrypt, sesiones con JWT |
 
@@ -29,8 +29,11 @@ SistemaGesLabMicro/
 ├── Base de Datos/      Scripts SQL de PostgreSQL
 │   ├── 01_esquema.sql                 Tablas, catálogos, funciones y vistas (obligatorio)
 │   ├── 02_datos_prueba.sql            Categorías y equipos de ejemplo (opcional)
-│   ├── 03_actualizacion_prestamos.sql Solo para bases creadas antes del módulo de préstamos
-│   └── 04_horario_devolucion.sql      Solo para bases creadas antes del ajuste de horario
+│   ├── 03_actualizacion_prestamos.sql ┐
+│   ├── 04_horario_devolucion.sql      │ Solo para bases creadas con una
+│   ├── 05_equipos_devueltos.sql       │ versión anterior del 01
+│   ├── 06_correo_cualquier_dominio.sql┘
+│   └── 07_dias_inhabiles_2026_2027.sql  Días inhábiles del calendario IPN 2026-2027
 ├── Imágenes/           Diagramas y recursos del proyecto
 └── servidor/           Backend (API REST)
     ├── app/
@@ -50,8 +53,8 @@ SistemaGesLabMicro/
 | Autenticación y seguridad | 1 – 1.5, 2 | ✅ Terminado |
 | Catálogo, inventario y categorías | 4, 4.1, 8.8, 8.10 – 8.12 | ✅ Terminado |
 | Solicitudes, dictamen y notificaciones | 3 – 3.5, 5 – 7.3, 8.1, 8.2 | ✅ Terminado |
-| Ventanilla: entrega, devolución, incidencias y sanciones | 8 – 8.9 | 🧪 En pruebas |
-| Configuración y reportes | 8.14 y siguientes | ⏳ Pendiente |
+| Ventanilla: entrega, devolución, incidencias y sanciones | 8 – 8.9 | ✅ Terminado |
+| Administración de alumnos, configuración y reportes PDF | 7.2, 8.13 – 8.15 | 🧪 En pruebas |
 | Frontend | — | ⏳ Pendiente |
 
 ---
@@ -79,9 +82,11 @@ En pgAdmin:
 2. Abre el **Query Tool** y ejecuta, en orden:
    - `Base de Datos/01_esquema.sql`
    - `Base de Datos/02_datos_prueba.sql` *(opcional)*
+   - `Base de Datos/07_dias_inhabiles_2026_2027.sql` (días festivos y vacaciones)
 
-> Los scripts `03` y `04` **no** hacen falta en una base nueva: sus cambios ya vienen en el `01`.
-> Solo son para quien creó su base antes de esos cambios.
+> Los scripts `03` a `06` **no** hacen falta en una base nueva: sus cambios ya vienen en el `01`.
+> Son solo para quien creó su base con una versión anterior; se ejecutan en orden, una vez cada uno
+> (se pueden repetir sin error). El `07` sí se ejecuta siempre: carga los días inhábiles.
 
 ### 4. Preparar el servidor
 

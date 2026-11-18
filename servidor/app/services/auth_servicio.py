@@ -20,7 +20,7 @@ from app.core.constantes import (
 )
 from app.core.dependencias import UsuarioSesion
 from app.core.seguridad import crear_token, generar_hash, simular_verificacion, verificar_contrasena
-from app.core.validaciones import dominio_autorizado, validar_contrasena
+from app.core.validaciones import validar_contrasena
 from app.models.usuarios import Encargado, Estudiante
 from app.schemas.auth import RegistroEstudiante
 
@@ -111,18 +111,22 @@ def iniciar_sesion(db: Session, usuario: str, contrasena: str) -> dict:
     ahora = _ahora()
 
     # ¿Sigue bloqueada por intentos fallidos? (SRS 1.1)
-    if cuenta.id_estado_cuenta == EstadoCuenta.BLOQUEADA:
-        if cuenta.bloqueado_hasta and cuenta.bloqueado_hasta > ahora:
-            raise _cuenta_bloqueada(cuenta.bloqueado_hasta)
-        # El bloqueo ya terminó
-        cuenta.id_estado_cuenta = EstadoCuenta.ACTIVA
+    # Se revisa por la hora, no por el estado: así también aplica a una cuenta Suspendida.
+    if cuenta.bloqueado_hasta and cuenta.bloqueado_hasta > ahora:
+        raise _cuenta_bloqueada(cuenta.bloqueado_hasta)
+    if cuenta.bloqueado_hasta or cuenta.id_estado_cuenta == EstadoCuenta.BLOQUEADA:
+        # El bloqueo ya terminó. Solo "Bloqueada" vuelve a "Activa"; una suspensión se conserva.
+        if cuenta.id_estado_cuenta == EstadoCuenta.BLOQUEADA:
+            cuenta.id_estado_cuenta = EstadoCuenta.ACTIVA
         cuenta.intentos_fallidos = 0
         cuenta.bloqueado_hasta = None
 
     if not verificar_contrasena(contrasena, cuenta.contrasena_hash):
         cuenta.intentos_fallidos += 1
         if cuenta.intentos_fallidos >= INTENTOS_MAXIMOS_LOGIN:
-            cuenta.id_estado_cuenta = EstadoCuenta.BLOQUEADA
+            # No se pisa la suspensión manual por adeudos (SRS 8.13)
+            if cuenta.id_estado_cuenta == EstadoCuenta.ACTIVA:
+                cuenta.id_estado_cuenta = EstadoCuenta.BLOQUEADA
             cuenta.bloqueado_hasta = ahora + timedelta(minutes=MINUTOS_BLOQUEO_LOGIN)
             cuenta.intentos_fallidos = 0
             db.commit()
@@ -184,17 +188,17 @@ def cambiar_contrasena(db: Session, usuario: UsuarioSesion, actual: str, nueva: 
 
 
 # =================================================================== restablecimiento (SRS 1.3)
-# Se implementa tal como lo indica el SRS: si el correo tiene dominio autorizado
-# y está registrado, el usuario puede generar una nueva contraseña.
+# Si el correo (de cualquier dominio) está registrado, el usuario puede generar
+# una nueva contraseña. También es como el alumno registrado manualmente por el
+# encargado crea su primera contraseña (SRS 8.13).
 
 def _buscar_por_correo(db: Session, correo: str) -> tuple[str, Estudiante | Encargado]:
-    if dominio_autorizado(correo):
-        estudiante = db.scalar(select(Estudiante).where(func.lower(Estudiante.correo) == correo))
-        if estudiante:
-            return Rol.ESTUDIANTE, estudiante
-        encargado = db.scalar(select(Encargado).where(func.lower(Encargado.correo) == correo))
-        if encargado:
-            return Rol.ENCARGADO, encargado
+    estudiante = db.scalar(select(Estudiante).where(func.lower(Estudiante.correo) == correo))
+    if estudiante:
+        return Rol.ESTUDIANTE, estudiante
+    encargado = db.scalar(select(Encargado).where(func.lower(Encargado.correo) == correo))
+    if encargado:
+        return Rol.ENCARGADO, encargado
     raise HTTPException(status.HTTP_404_NOT_FOUND, MENSAJE_CORREO_NO_REGISTRADO)
 
 

@@ -18,8 +18,8 @@ from app.core.database import obtener_sesion
 from app.core.dependencias import UsuarioSesion, requerir_encargado
 from app.core.errores import registrar_manejadores
 from app.core.tiempo import ahora
-from app.routers import (auth, catalogo, categorias, dictamen, encargado, inventario, notificaciones,
-                         solicitudes, ventanilla)
+from app.routers import (administracion, auth, catalogo, categorias, dictamen, encargado, inventario,
+                         notificaciones, solicitudes, ventanilla)
 from app.schemas.prestamos import ResultadoTareas
 from app.services import tareas
 from app.services.archivos import CARPETA_EQUIPOS, CARPETA_UPLOADS
@@ -48,7 +48,7 @@ async def ciclo_de_vida(_: FastAPI):
 app = FastAPI(
     title="API - Préstamos del Laboratorio de Microprocesadores",
     description="ESIME CU · Equipo 2",
-    version="0.5.1",
+    version="0.6.1",
     lifespan=ciclo_de_vida,
 )
 
@@ -75,6 +75,7 @@ app.include_router(dictamen.router)
 app.include_router(notificaciones.router)
 app.include_router(ventanilla.router)
 app.include_router(encargado.router)
+app.include_router(administracion.router)
 
 # Fotos y manuales: http://127.0.0.1:8000/uploads/equipos/<archivo>
 CARPETA_EQUIPOS.mkdir(parents=True, exist_ok=True)

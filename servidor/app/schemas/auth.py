@@ -6,7 +6,7 @@ from app.core.validaciones import (
     normalizar_correo,
     validar_boleta,
     validar_contrasena,
-    validar_correo_institucional,
+    validar_formato_correo,
     validar_nombre,
 )
 
@@ -47,7 +47,7 @@ class RegistroEstudiante(BaseModel):
     @field_validator("correo")
     @classmethod
     def _correo(cls, v: str) -> str:
-        return validar_correo_institucional(v)
+        return validar_formato_correo(v)
 
     @field_validator("contrasena")
     @classmethod

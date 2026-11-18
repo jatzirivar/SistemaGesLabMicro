@@ -124,8 +124,8 @@ CREATE TABLE estudiante (
     nombre              VARCHAR(60)  NOT NULL,
     apellido_pat        VARCHAR(60)  NOT NULL,
     apellido_mat        VARCHAR(60),
-    correo              VARCHAR(120) NOT NULL
-                                     CHECK (correo ~* '^[A-Z0-9._%+-]+@(gmail\.com|alumno\.ipn\.mx|ipn\.mx)$'),
+    correo              VARCHAR(120) NOT NULL   -- cualquier dominio con formato válido
+                                     CHECK (correo ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'),
     contrasena_hash     VARCHAR(255) NOT NULL,   -- bcrypt, nunca texto plano (SRS 1.5)
     intentos_fallidos   SMALLINT     NOT NULL DEFAULT 0 CHECK (intentos_fallidos >= 0),
     bloqueado_hasta     TIMESTAMPTZ,             -- fin del bloqueo de 15 min

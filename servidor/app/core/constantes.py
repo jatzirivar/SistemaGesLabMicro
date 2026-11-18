@@ -111,9 +111,6 @@ MINUTOS_BLOQUEO_LOGIN = 15
 LONGITUD_MINIMA_CONTRASENA_ESTUDIANTE = 8
 LONGITUD_MINIMA_CONTRASENA_ENCARGADO = 10
 
-# Dominios de correo autorizados (SRS 1.3 y 2)
-DOMINIOS_AUTORIZADOS = ("gmail.com", "alumno.ipn.mx", "ipn.mx")
-
 # Mensajes que exige el SRS, escritos igual que en el documento
 MENSAJE_CREDENCIALES_INVALIDAS = "Usuario o contraseña incorrectos"   # SRS 1.2
 MENSAJE_CORREO_NO_REGISTRADO = "Correo no registrado"                 # SRS 1.3
