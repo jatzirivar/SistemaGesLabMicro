@@ -5,18 +5,20 @@ Ejecutar (con el entorno virtual activado):
 """
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.config import configuracion
 from app.core.database import obtener_sesion
 from app.core.errores import registrar_manejadores
-from app.routers import auth
+from app.routers import auth, catalogo, categorias, inventario
+from app.services.archivos import CARPETA_EQUIPOS, CARPETA_UPLOADS
 
 app = FastAPI(
     title="API - Préstamos del Laboratorio de Microprocesadores",
     description="ESIME CU · Equipo 2",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 # Permite que el frontend en React llame a esta API desde otro puerto
@@ -33,6 +35,13 @@ registrar_manejadores(app)
 
 # Módulos de la API
 app.include_router(auth.router)
+app.include_router(catalogo.router)
+app.include_router(categorias.router)
+app.include_router(inventario.router)
+
+# Fotos y manuales: http://127.0.0.1:8000/uploads/equipos/<archivo>
+CARPETA_EQUIPOS.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=CARPETA_UPLOADS), name="uploads")
 
 
 @app.get("/api/salud", tags=["Sistema"])

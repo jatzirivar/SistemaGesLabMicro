@@ -16,6 +16,12 @@ _MENSAJES_POR_TIPO = {
     "bool_parsing": "Debe ser verdadero o falso",
     "json_invalid": "El cuerpo de la petición no es un JSON válido",
     "model_attributes_type": "Formato de datos inválido",
+    "greater_than_equal": "El valor es menor al mínimo permitido",
+    "less_than_equal": "El valor es mayor al máximo permitido",
+    "literal_error": "Valor no permitido",
+    "date_parsing": "Fecha inválida, usa el formato AAAA-MM-DD",
+    "date_from_datetime_parsing": "Fecha inválida, usa el formato AAAA-MM-DD",
+    "date_type": "Fecha inválida, usa el formato AAAA-MM-DD",
 }
 
 

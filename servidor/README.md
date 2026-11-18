@@ -59,3 +59,27 @@ python -m scripts.crear_encargado
 
 Las rutas protegidas necesitan el encabezado `Authorization: Bearer <token>`.
 En `/docs`, usa el botón **Authorize** y pega el `access_token` del login.
+
+## Módulo 2 · Catálogo e inventario
+
+**Catálogo (cualquier usuario con sesión)**
+
+| Método | Ruta | Qué hace | SRS |
+|---|---|---|---|
+| GET | `/api/catalogo` | Equipos con disponibilidad actual, búsqueda y filtros | 4, 4.1 |
+| GET | `/api/catalogo/{codigo}` | Ficha completa del equipo | 4 |
+| GET | `/api/categorias` | Categorías con total y disponibles | 4 |
+
+**Encargado**
+
+| Método | Ruta | Qué hace | SRS |
+|---|---|---|---|
+| GET | `/api/inventario/equipos` | Tabla paginada (20 por página) | 8.8 |
+| POST | `/api/inventario/equipos` | Alta (código automático) | 8.10, 8.11 |
+| PUT | `/api/inventario/equipos/{codigo}` | Edición (sin cambiar código) | 8.10 |
+| PATCH | `/api/inventario/equipos/{codigo}/estado` | Disponible ↔ En mantenimiento | — |
+| POST | `/api/inventario/equipos/{codigo}/baja` | Baja con motivo (conserva historial) | 8.10 |
+| DELETE | `/api/inventario/equipos/{codigo}` | Eliminar (solo si nunca se prestó) | 8.12 |
+| PUT | `/api/inventario/equipos/{codigo}/foto` | Foto JPG/PNG/WebP ≤ 5 MB | 8.8 |
+| PUT | `/api/inventario/equipos/{codigo}/manual` | Manual PDF ≤ 10 MB | 8.8 |
+| POST/PUT/DELETE | `/api/categorias[/{id}]` | Crear, renombrar, eliminar categoría | 8.12 |

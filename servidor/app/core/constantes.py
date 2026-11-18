@@ -10,6 +10,39 @@ class EstadoCuenta:
     BLOQUEADA = 3    # bloqueo temporal por intentos fallidos (SRS 1.1)
 
 
+class EstadoEquipo:
+    DISPONIBLE = 1
+    PRESTADO = 2
+    EN_MANTENIMIENTO = 3
+    DADO_DE_BAJA = 4
+
+    NOMBRES = {1: "Disponible", 2: "Prestado", 3: "En mantenimiento", 4: "Dado de baja"}
+
+
+class EstadoPrestamo:
+    PENDIENTE = 1
+    APROBADA = 2
+    ENTREGADA = 3
+    VENCIDA = 4
+    DEVUELTA = 5
+    RECHAZADA = 6
+    CANCELADA = 7
+
+    # Préstamos que tienen al equipo apartado o fuera del laboratorio
+    ACTIVOS = (1, 2, 3, 4)
+
+
+# Disponibilidad que ve el estudiante en el catálogo (SRS 4 y 4.1)
+DISPONIBLE = "Disponible"
+NO_DISPONIBLE = "No disponible"
+EN_MANTENIMIENTO = "En mantenimiento"
+
+# Archivos de equipos (fotos y manuales)
+TAMANO_MAXIMO_FOTO = 5 * 1024 * 1024      # 5 MB
+TAMANO_MAXIMO_MANUAL = 10 * 1024 * 1024   # 10 MB
+EQUIPOS_POR_PAGINA = 20                   # SRS 8.8
+
+
 class Rol:
     ESTUDIANTE = "estudiante"
     ENCARGADO = "encargado"
