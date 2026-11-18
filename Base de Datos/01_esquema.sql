@@ -1,3 +1,14 @@
+-- =====================================================================
+--  Sistema de Gestión de Préstamos del Laboratorio de Microprocesadores
+--  ESIME CU - Equipo 2
+--  Script 01: Esquema de base de datos (PostgreSQL 14 o superior)
+--
+--  Cómo ejecutarlo (pgAdmin o psql):
+--    1. Crear una base de datos vacía:  CREATE DATABASE gestion_prestamos;
+--    2. Conectarse a ella y ejecutar este archivo completo.
+--    3. (Opcional) Ejecutar 02_datos_prueba.sql
+-- =====================================================================
+
 -- Zona horaria de la base de datos (todas las fechas en hora del centro de México)
 DO $$
 BEGIN
@@ -11,39 +22,39 @@ SET TIME ZONE 'America/Mexico_City';
 --    Los ID se insertan con valor fijo porque el backend y algunas
 --    reglas de este script los usan directamente. NO cambiarlos.
 -- =====================================================================
--- 1. Catálogo de Estados de Cuenta de Usuario
+
 CREATE TABLE estado_cuenta (
     id_estado_cuenta    SMALLINT     PRIMARY KEY,
     estado              VARCHAR(20)  NOT NULL UNIQUE
 );
--- 2. Catálogo de Estados Operativos del Hardware
+
 CREATE TABLE estado_equipo (
     id_estado_equipo    SMALLINT     PRIMARY KEY,
     estado              VARCHAR(20)  NOT NULL UNIQUE
 );
--- 3. Catálogo de Estados del Trámite de Préstamo
+
 CREATE TABLE estado_prestamo (
     id_estado_prestamo  SMALLINT     PRIMARY KEY,
     estado              VARCHAR(20)  NOT NULL UNIQUE
 );
--- 4. Catálogo de Dictamen de Inspección Física
+
 CREATE TABLE inspeccion_fisica (
     id_inspeccion       SMALLINT     PRIMARY KEY,
     estado              VARCHAR(20)  NOT NULL UNIQUE
 );
--- 5. Catálogo de Tipos de Incidencia
+
 CREATE TABLE tipo_incidencia (
     id_tipo_incidencia  SMALLINT     PRIMARY KEY,
     tipo                VARCHAR(20)  NOT NULL UNIQUE,
     -- Días de sanción que genera este tipo. NULL = sanción indefinida.
     dias_sancion        SMALLINT     CHECK (dias_sancion IS NULL OR dias_sancion > 0)
 );
--- 6. Catálogo de Estados de Sanciones
+
 CREATE TABLE estado_sancion (
     id_estado_sancion   SMALLINT     PRIMARY KEY,
     estado              VARCHAR(20)  NOT NULL UNIQUE
 );
--- 7. Catálogo de Estados de Notificaciones
+
 CREATE TABLE estado_notificacion (
     id_estado_notificacion SMALLINT  PRIMARY KEY,
     estado              VARCHAR(20)  NOT NULL UNIQUE
@@ -54,7 +65,7 @@ CREATE TABLE motivo_rechazo (
     id_motivo_rechazo   SMALLINT     PRIMARY KEY,
     motivo              VARCHAR(40)  NOT NULL UNIQUE
 );
---Inserta datos en las tablas 
+
 INSERT INTO estado_cuenta VALUES
     (1, 'Activa'),
     (2, 'Suspendida'),   -- bloqueo manual por adeudos (SRS 8.13)
@@ -64,7 +75,7 @@ INSERT INTO estado_equipo VALUES
     (1, 'Disponible'),
     (2, 'Prestado'),
     (3, 'En mantenimiento'),
-    (4, 'No disponible');
+    (4, 'Dado de baja');
 
 INSERT INTO estado_prestamo VALUES
     (1, 'Pendiente'),
@@ -237,8 +248,9 @@ CREATE TRIGGER trg_equipo_codigo_inmutable
 
 CREATE TABLE configuracion_lab (
     id_configuracion    SMALLINT     PRIMARY KEY DEFAULT 1 CHECK (id_configuracion = 1),
-    horario_apertura    TIME         NOT NULL DEFAULT '07:00',
-    horario_cierre      TIME         NOT NULL DEFAULT '20:30',
+    horario_apertura    TIME         NOT NULL DEFAULT '07:00',   -- primera hora para RETIRAR
+    horario_cierre      TIME         NOT NULL DEFAULT '20:30',   -- última hora para RETIRAR
+    hora_limite_devolucion TIME      NOT NULL DEFAULT '22:00',   -- última hora para DEVOLVER (fin de la última clase)
     -- Días de servicio en formato ISO: 1 = lunes ... 7 = domingo
     dias_servicio       SMALLINT[]   NOT NULL DEFAULT '{1,2,3,4,5}',
     duracion_ordinaria  SMALLINT     NOT NULL DEFAULT 90  CHECK (duracion_ordinaria > 0), -- minutos (1 clase)
@@ -248,6 +260,7 @@ CREATE TABLE configuracion_lab (
     limite_por_modelo   SMALLINT     NOT NULL DEFAULT 2   CHECK (limite_por_modelo > 0), -- piezas con el mismo nombre
     tolerancia_retiro   SMALLINT     NOT NULL DEFAULT 30  CHECK (tolerancia_retiro >= 0), -- minutos
     CONSTRAINT ck_config_horario  CHECK (horario_apertura < horario_cierre),
+    CONSTRAINT ck_config_devolucion CHECK (horario_cierre <= hora_limite_devolucion),
     CONSTRAINT ck_config_duracion CHECK (duracion_ordinaria <= duracion_maxima)
 );
 INSERT INTO configuracion_lab DEFAULT VALUES;
@@ -297,6 +310,10 @@ CREATE TABLE prestamo (
     -- Devolución real
     id_encargado_devolucion   INTEGER    REFERENCES encargado,
     fecha_hora_real_devolucion TIMESTAMPTZ,
+
+    -- Cancelación (por el estudiante o automática)
+    fecha_hora_cancelacion  TIMESTAMPTZ,
+    motivo_cancelacion      VARCHAR(255),
 
     -- Un rechazo siempre lleva motivo; "Otro" (5) además lleva texto
     CONSTRAINT ck_prestamo_rechazo CHECK (
@@ -380,6 +397,7 @@ CREATE TABLE notificacion (
     id_estado_notificacion  SMALLINT     NOT NULL DEFAULT 1 REFERENCES estado_notificacion
 );
 CREATE INDEX ix_notificacion_estudiante ON notificacion (id_estudiante, id_estado_notificacion);
+CREATE INDEX ix_notificacion_folio      ON notificacion (folio_prestamo);
 
 -- =====================================================================
 -- 8. FUNCIONES Y VISTAS DE APOYO
@@ -401,6 +419,8 @@ $$ LANGUAGE sql STABLE;
 -- ¿El equipo está ocupado en ese horario? (pregunta 2: disponibilidad por horario)
 -- Ocupan horario los préstamos Pendiente, Aprobada y Entregada.
 -- Un préstamo Vencida ocupa el equipo sin importar la hora (no se ha devuelto).
+-- Si la devolución ya se registró, el equipo ya no está con el alumno: no ocupa
+-- (su disponibilidad depende entonces de su estado: mantenimiento, baja, etc.).
 CREATE FUNCTION fn_equipo_ocupado(
     p_codigo         VARCHAR,
     p_inicio         TIMESTAMPTZ,
@@ -413,6 +433,7 @@ CREATE FUNCTION fn_equipo_ocupado(
           JOIN prestamo p ON p.folio = d.folio_prestamo
          WHERE d.codigo_inventario = p_codigo
            AND p.folio IS DISTINCT FROM p_excluir_folio
+           AND p.fecha_hora_real_devolucion IS NULL   -- ya devuelto (aunque tenga pendientes): no ocupa
            AND (
                  p.id_estado_prestamo = 4
               OR (p.id_estado_prestamo IN (1, 2, 3)

@@ -7,6 +7,9 @@ python-multipart        # recibir archivos (fotos de equipos) y formularios
 sqlalchemy
 psycopg[binary]
 
+# Zonas horarias en Windows (America/Mexico_City)
+tzdata
+
 # Configuración desde el archivo .env
 pydantic-settings
 

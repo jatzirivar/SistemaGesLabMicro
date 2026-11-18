@@ -3,6 +3,10 @@
 Ejecutar (con el entorno virtual activado):
     uvicorn app.main:app --reload
 """
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -11,14 +15,41 @@ from sqlalchemy.orm import Session
 
 from app.core.config import configuracion
 from app.core.database import obtener_sesion
+from app.core.dependencias import UsuarioSesion, requerir_encargado
 from app.core.errores import registrar_manejadores
-from app.routers import auth, catalogo, categorias, inventario
+from app.core.tiempo import ahora
+from app.routers import (auth, catalogo, categorias, dictamen, encargado, inventario, notificaciones,
+                         solicitudes, ventanilla)
+from app.schemas.prestamos import ResultadoTareas
+from app.services import tareas
 from app.services.archivos import CARPETA_EQUIPOS, CARPETA_UPLOADS
+
+log = logging.getLogger("uvicorn.error")
+SEGUNDOS_ENTRE_TAREAS = 60
+
+
+async def _ciclo_de_tareas():
+    """Cada minuto: vencimientos, cancelaciones por no retiro, recordatorios y sanciones."""
+    while True:
+        try:
+            await asyncio.to_thread(tareas.ejecutar_con_sesion_propia)
+        except Exception:  # un error no debe detener el servidor
+            log.exception("Error en las tareas automáticas")
+        await asyncio.sleep(SEGUNDOS_ENTRE_TAREAS)
+
+
+@asynccontextmanager
+async def ciclo_de_vida(_: FastAPI):
+    tarea = asyncio.create_task(_ciclo_de_tareas())
+    yield
+    tarea.cancel()
+
 
 app = FastAPI(
     title="API - Préstamos del Laboratorio de Microprocesadores",
     description="ESIME CU · Equipo 2",
-    version="0.3.0",
+    version="0.5.1",
+    lifespan=ciclo_de_vida,
 )
 
 # Permite que el frontend en React llame a esta API desde otro puerto
@@ -38,6 +69,12 @@ app.include_router(auth.router)
 app.include_router(catalogo.router)
 app.include_router(categorias.router)
 app.include_router(inventario.router)
+app.include_router(solicitudes.router_panel)
+app.include_router(solicitudes.router)
+app.include_router(dictamen.router)
+app.include_router(notificaciones.router)
+app.include_router(ventanilla.router)
+app.include_router(encargado.router)
 
 # Fotos y manuales: http://127.0.0.1:8000/uploads/equipos/<archivo>
 CARPETA_EQUIPOS.mkdir(parents=True, exist_ok=True)
@@ -50,6 +87,7 @@ def revisar_salud(db: Session = Depends(obtener_sesion)):
     fila = db.execute(text("""
         SELECT horario_apertura,
                horario_cierre,
+               hora_limite_devolucion,
                duracion_ordinaria,
                current_setting('TimeZone') AS zona,
                (SELECT count(*) FROM equipo) AS total_equipos
@@ -60,7 +98,15 @@ def revisar_salud(db: Session = Depends(obtener_sesion)):
         "estado": "ok",
         "base_de_datos": "conectada",
         "zona_horaria": fila["zona"],
-        "horario_laboratorio": f"{fila['horario_apertura']:%H:%M} a {fila['horario_cierre']:%H:%M}",
+        "hora_servidor": f"{ahora():%d/%m/%Y %H:%M}",
+        "horario_retiro": f"{fila['horario_apertura']:%H:%M} a {fila['horario_cierre']:%H:%M}",
+        "devolucion_hasta": f"{fila['hora_limite_devolucion']:%H:%M}",
         "duracion_prestamo_minutos": fila["duracion_ordinaria"],
         "equipos_registrados": fila["total_equipos"],
     }
+
+
+@app.post("/api/sistema/tareas", response_model=ResultadoTareas, tags=["Sistema"])
+def ejecutar_tareas(_: UsuarioSesion = Depends(requerir_encargado), db: Session = Depends(obtener_sesion)):
+    """Ejecuta ahora las tareas automáticas (normalmente corren solas cada minuto). Útil para pruebas."""
+    return {**tareas.ejecutar(db), "hora": ahora().time().replace(microsecond=0)}

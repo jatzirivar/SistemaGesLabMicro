@@ -31,6 +31,63 @@ class EstadoPrestamo:
     # Préstamos que tienen al equipo apartado o fuera del laboratorio
     ACTIVOS = (1, 2, 3, 4)
 
+    NOMBRES = {1: "Pendiente", 2: "Aprobada", 3: "Entregada", 4: "Vencida",
+               5: "Devuelta", 6: "Rechazada", 7: "Cancelada"}
+
+    # Agrupación de "Mis solicitudes" (SRS 3.1)
+    EN_CURSO = (2, 3, 4)
+    EN_REVISION = (1,)
+    FINALIZADAS = (5, 6, 7)
+
+
+class InspeccionFisica:
+    BUENO = 1
+    DANADO = 2
+    INCOMPLETO = 3
+    NOMBRES = {1: "Bueno", 2: "Dañado", 3: "Incompleto"}
+
+
+class TipoIncidencia:
+    RETRASO = 1
+    DANO = 2
+    PERDIDA = 3
+    NO_RETIRO = 4
+    NOMBRES = {1: "Retraso", 2: "Daño", 3: "Pérdida", 4: "No retiro"}
+
+
+# Ventanilla (SRS 8.5)
+INTENTOS_MAXIMOS_PIN = 3
+MINUTOS_BLOQUEO_PIN = 15
+MENSAJE_SIN_ENTREGAS = "No hay préstamos por entregar"      # SRS 8.3
+MENSAJE_SIN_DEVOLUCIONES = "No hay préstamos por devolver"
+MENSAJE_PIN_INCORRECTO = "PIN incorrecto"                   # SRS 8.5
+BAJO_STOCK_MENOS_DE = 2                                     # SRS 8
+
+
+class EstadoSancion:
+    VIGENTE = 1
+    CUMPLIDA = 2
+    CONDONADA = 3
+
+
+class EstadoNotificacion:
+    NO_LEIDA = 1
+    LEIDA = 2
+
+
+class MotivoRechazo:
+    OTRO = 5
+    NOMBRES = {1: "Equipo no disponible", 2: "Sanción vigente", 3: "Adeudo de equipos anteriores",
+               4: "Datos incoherentes", 5: "Otro"}
+
+
+# Avisos (SRS 3.3 y 3.5)
+MINUTOS_RECORDATORIO_DEVOLUCION = 15
+MINUTOS_PROXIMO_A_VENCER = 30      # etiqueta amarilla "Próximo a vencer"
+DIAS_SANCION_NO_RETIRO = 2
+MENSAJE_AVISO_CANCELACION = ("La no cancelación a tiempo de equipos no requeridos "
+                             "se considera motivo de sanción")
+
 
 # Disponibilidad que ve el estudiante en el catálogo (SRS 4 y 4.1)
 DISPONIBLE = "Disponible"
