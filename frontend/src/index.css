@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Colores del sistema, tomados de las maquetas (guinda institucional y verde) */
+@theme {
+  --color-guinda-50: #fbf2f3;
+  --color-guinda-100: #f5e1e3;
+  --color-guinda-600: #8c1d28;
+  --color-guinda-700: #741520;
+  --color-guinda-800: #5e0f18;
+  --color-guinda-900: #4a0b12;
+
+  --color-verde-50: #ecf7f2;
+  --color-verde-600: #127a57;
+  --color-verde-700: #0f6146;
+  --color-verde-800: #0b4b37;
+
+  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+}
