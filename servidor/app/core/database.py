@@ -1,19 +1,24 @@
 """Conexión con PostgreSQL usando SQLAlchemy."""
 from sqlalchemy import create_engine
-from sqlalchemy.engine import URL
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.core.config import configuracion
 
-# URL.create escapa correctamente contraseñas con caracteres especiales (@, #, ñ...)
-url_bd = URL.create(
-    drivername="postgresql+psycopg",
-    username=configuracion.db_usuario,
-    password=configuracion.db_contrasena,
-    host=configuracion.db_host,
-    port=configuracion.db_puerto,
-    database=configuracion.db_nombre,
-)
+if configuracion.database_url:
+    # Cadena de conexión completa (Neon): postgresql://usuario:clave@host/bd?sslmode=require
+    url_bd = make_url(configuracion.database_url.replace("postgres://", "postgresql://", 1)).set(
+        drivername="postgresql+psycopg")
+else:
+    # URL.create escapa correctamente contraseñas con caracteres especiales (@, #, ñ...)
+    url_bd = URL.create(
+        drivername="postgresql+psycopg",
+        username=configuracion.db_usuario,
+        password=configuracion.db_contrasena,
+        host=configuracion.db_host,
+        port=configuracion.db_puerto,
+        database=configuracion.db_nombre,
+    )
 
 motor = create_engine(
     url_bd,

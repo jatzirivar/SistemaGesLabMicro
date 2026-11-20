@@ -1,3 +1,9 @@
+-- =====================================================================
+--  Script 02: Datos de prueba (OPCIONAL, solo para desarrollo)
+--  Ejecutar después de 01_esquema.sql
+--  Los usuarios de prueba se crean desde el backend (necesitan hash bcrypt).
+-- =====================================================================
+
 INSERT INTO categoria (nombre, prefijo) VALUES
     ('Osciloscopios',          'OSC'),
     ('Fuentes de alimentación', 'FUEN'),

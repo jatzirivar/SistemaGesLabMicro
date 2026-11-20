@@ -163,7 +163,52 @@ def panel(db: Session) -> dict:
         "entregas_del_dia": sum(1 for p in aprobadas if a_local(p.fecha_hora_prog_retiro).date() == hoy_),
         "devoluciones_del_dia": sum(1 for p in entregadas if comun.limite_de(p, config).date() == hoy_),
         "categorias_bajo_stock": bajo_stock,
+        "devoluciones_hoy": sorted(
+            ({"folio": p.folio, "estudiante": p.estudiante.nombre_completo, "boleta": p.estudiante.boleta,
+              "fecha_hora_limite_devolucion": comun.limite_de(p, config)}
+             for p in entregadas if comun.limite_de(p, config).date() == hoy_),
+            key=lambda d: d["fecha_hora_limite_devolucion"],
+        ),
     }
+
+
+def avisos_encargado(db: Session) -> list[dict]:
+    """Avisos de la campana del encargado, calculados con el estado actual de los préstamos."""
+    config = comun.configuracion_lab(db)
+    momento = ahora()
+    hoy_ = hoy()
+    avisos = []
+    prestamos = db.scalars(select(Prestamo).where(Prestamo.id_estado_prestamo.in_(
+        (EstadoPrestamo.PENDIENTE, EstadoPrestamo.APROBADA, EstadoPrestamo.ENTREGADA, EstadoPrestamo.VENCIDA)))).all()
+    for p in prestamos:
+        alumno = p.estudiante.nombre_completo
+        retiro = a_local(p.fecha_hora_prog_retiro)
+        limite = comun.limite_de(p, config)
+        if p.id_estado_prestamo == EstadoPrestamo.PENDIENTE:
+            avisos.append({"tipo": "Pendiente", "titulo": "Nueva solicitud por revisar",
+                           "mensaje": f"{p.folio} de {alumno}, retiro el {retiro:%d/%m/%Y} a las {retiro:%H:%M}.",
+                           "fecha_hora": a_local(p.fecha_hora_solicitud)})
+        elif p.id_estado_prestamo == EstadoPrestamo.APROBADA and retiro.date() == hoy_:
+            avisos.append({"tipo": "Retiro", "titulo": "Retiro programado hoy",
+                           "mensaje": f"{p.folio}: {alumno} recoge a las {retiro:%H:%M}.",
+                           "fecha_hora": retiro})
+        elif p.fecha_hora_real_devolucion is not None:
+            avisos.append({"tipo": "Pendientes", "titulo": "Equipos pendientes por resolver",
+                           "mensaje": f"{p.folio}: {alumno} devolvió con equipos dañados o incompletos.",
+                           "fecha_hora": a_local(p.fecha_hora_real_devolucion)})
+        elif p.id_estado_prestamo == EstadoPrestamo.VENCIDA:
+            avisos.append({"tipo": "Vencido", "titulo": "Préstamo vencido",
+                           "mensaje": f"{p.folio}: {alumno} debía devolver a las {limite:%H:%M} del {limite:%d/%m/%Y}.",
+                           "fecha_hora": limite})
+        elif momento <= limite <= momento + timedelta(minutes=15):
+            avisos.append({"tipo": "Devolucion", "titulo": "Devolución próxima",
+                           "mensaje": f"{p.folio}: {alumno} debe devolver a las {limite:%H:%M}.",
+                           "fecha_hora": limite - timedelta(minutes=15)})
+        else:
+            continue
+        avisos[-1].update({"id": f"{avisos[-1]['tipo']}-{p.folio}", "folio": p.folio})
+    avisos.sort(key=lambda a: a["fecha_hora"], reverse=True)
+    return avisos[:50]
 
 
 def detalle(db: Session, folio: str) -> dict:

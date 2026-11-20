@@ -5,12 +5,22 @@ import RutaProtegida from './components/RutaProtegida'
 import { rutaInicio, useAuth } from './context/AuthContext'
 import LayoutEncargado from './layouts/LayoutEncargado'
 import LayoutEstudiante from './layouts/LayoutEstudiante'
-import EnConstruccion from './pages/EnConstruccion'
 import Login from './pages/Login'
 import NoEncontrada from './pages/NoEncontrada'
 import Recuperar from './pages/Recuperar'
 import Registro from './pages/Registro'
+import Configuracion from './pages/encargado/Configuracion'
+import FichaAlumno from './pages/encargado/FichaAlumno'
+import Historial from './pages/encargado/Historial'
+import Inventario from './pages/encargado/Inventario'
 import PanelEncargado from './pages/encargado/PanelEncargado'
+import Solicitudes from './pages/encargado/Solicitudes'
+import Usuarios from './pages/encargado/Usuarios'
+import Carrito from './pages/estudiante/Carrito'
+import Catalogo from './pages/estudiante/Catalogo'
+import ConfigurarSolicitud from './pages/estudiante/ConfigurarSolicitud'
+import DetalleSolicitud from './pages/estudiante/DetalleSolicitud'
+import MisSolicitudes from './pages/estudiante/MisSolicitudes'
 import PanelEstudiante from './pages/estudiante/PanelEstudiante'
 
 /** Login, registro y recuperación: si ya hay sesión, manda a su panel. */
@@ -41,10 +51,11 @@ export default function App() {
         <Route path="/estudiante" element={<LayoutEstudiante />}>
           <Route index element={<Navigate to="panel" replace />} />
           <Route path="panel" element={<PanelEstudiante />} />
-          <Route path="catalogo" element={<EnConstruccion titulo="Catálogo de equipos" paso={4} />} />
-          <Route path="carrito" element={<EnConstruccion titulo="Carrito de solicitud" paso={4} />} />
-          <Route path="solicitudes" element={<EnConstruccion titulo="Mis solicitudes" paso={4} />} />
-          <Route path="solicitudes/:folio" element={<EnConstruccion titulo="Detalle de solicitud" paso={4} />} />
+          <Route path="catalogo" element={<Catalogo />} />
+          <Route path="carrito" element={<Carrito />} />
+          <Route path="carrito/configurar" element={<ConfigurarSolicitud />} />
+          <Route path="solicitudes" element={<MisSolicitudes />} />
+          <Route path="solicitudes/:folio" element={<DetalleSolicitud />} />
         </Route>
       </Route>
 
@@ -53,11 +64,12 @@ export default function App() {
         <Route path="/encargado" element={<LayoutEncargado />}>
           <Route index element={<Navigate to="panel" replace />} />
           <Route path="panel" element={<PanelEncargado />} />
-          <Route path="solicitudes" element={<EnConstruccion titulo="Solicitudes y ventanilla" paso={5} />} />
-          <Route path="inventario" element={<EnConstruccion titulo="Gestión de Inventario" paso={5} />} />
-          <Route path="usuarios" element={<EnConstruccion titulo="Usuarios" paso={5} />} />
-          <Route path="historial" element={<EnConstruccion titulo="Historial de préstamos" paso={5} />} />
-          <Route path="configuracion" element={<EnConstruccion titulo="Configuración" paso={5} />} />
+          <Route path="solicitudes" element={<Solicitudes />} />
+          <Route path="inventario" element={<Inventario />} />
+          <Route path="usuarios" element={<Usuarios />} />
+          <Route path="usuarios/:id" element={<FichaAlumno />} />
+          <Route path="historial" element={<Historial />} />
+          <Route path="configuracion" element={<Configuracion />} />
         </Route>
       </Route>
 

@@ -6,8 +6,10 @@ Ejecutar (con el entorno virtual activado):
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -22,7 +24,7 @@ from app.routers import (administracion, auth, catalogo, categorias, dictamen, e
                          notificaciones, solicitudes, ventanilla)
 from app.schemas.prestamos import ResultadoTareas
 from app.services import tareas
-from app.services.archivos import CARPETA_EQUIPOS, CARPETA_UPLOADS
+from app.services import archivos
 
 log = logging.getLogger("uvicorn.error")
 SEGUNDOS_ENTRE_TAREAS = 60
@@ -48,7 +50,7 @@ async def ciclo_de_vida(_: FastAPI):
 app = FastAPI(
     title="API - Préstamos del Laboratorio de Microprocesadores",
     description="ESIME CU · Equipo 2",
-    version="0.6.1",
+    version="0.7.0",
     lifespan=ciclo_de_vida,
 )
 
@@ -78,8 +80,18 @@ app.include_router(encargado.router)
 app.include_router(administracion.router)
 
 # Fotos y manuales: http://127.0.0.1:8000/uploads/equipos/<archivo>
-CARPETA_EQUIPOS.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=CARPETA_UPLOADS), name="uploads")
+if archivos.EN_BD:
+    @app.get("/uploads/{ruta:path}", include_in_schema=False)
+    def descargar_archivo(ruta: str):
+        encontrado = archivos.leer_de_bd(ruta)
+        if encontrado is None:
+            raise HTTPException(404, "Archivo no encontrado")
+        contenido, tipo = encontrado
+        # El nombre del archivo cambia en cada carga, así que el navegador puede guardarlo en caché
+        return Response(contenido, media_type=tipo, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+else:
+    archivos.CARPETA_EQUIPOS.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=archivos.CARPETA_UPLOADS), name="uploads")
 
 
 @app.get("/api/salud", tags=["Sistema"])
@@ -111,3 +123,21 @@ def revisar_salud(db: Session = Depends(obtener_sesion)):
 def ejecutar_tareas(_: UsuarioSesion = Depends(requerir_encargado), db: Session = Depends(obtener_sesion)):
     """Ejecuta ahora las tareas automáticas (normalmente corren solas cada minuto). Útil para pruebas."""
     return {**tareas.ejecutar(db), "hora": ahora().time().replace(microsecond=0)}
+
+
+# Página del frontend ya compilada (npm run build). En tu PC normalmente no existe y se usa
+# "npm run dev"; en Render se compila y este mismo servidor la entrega. Va al final para no
+# tapar las rutas de la API.
+CARPETA_FRONTEND = Path(configuracion.carpeta_frontend).resolve()
+if (CARPETA_FRONTEND / "index.html").is_file():
+    @app.get("/{ruta:path}", include_in_schema=False)
+    def pagina_frontend(ruta: str):
+        if ruta.startswith(("api/", "uploads/")):
+            raise HTTPException(404, "No encontrado")
+        archivo = (CARPETA_FRONTEND / ruta).resolve()
+        if ruta and CARPETA_FRONTEND in archivo.parents and archivo.is_file():
+            # Los archivos de /assets llevan una huella en el nombre: se pueden guardar en caché
+            cache = "public, max-age=31536000, immutable" if ruta.startswith("assets/") else "no-cache"
+            return FileResponse(archivo, headers={"Cache-Control": cache})
+        # Rutas de React (/estudiante/panel, /login...): siempre index.html
+        return FileResponse(CARPETA_FRONTEND / "index.html", headers={"Cache-Control": "no-cache"})

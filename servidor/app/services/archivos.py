@@ -1,17 +1,25 @@
-"""Guarda fotos y manuales de equipos en la carpeta uploads/.
+"""Guarda fotos y manuales de equipos.
 
-En la BD solo se guarda la ruta relativa (ej. "equipos/OSC-001_a1b2c3.jpg").
-El navegador los descarga en /uploads/<ruta>.
+En la tabla equipo solo se guarda la ruta relativa (ej. "equipos/OSC-001_a1b2c3.jpg") y el
+navegador los descarga en /uploads/<ruta>. Según ALMACEN_ARCHIVOS el contenido va:
+  - "disco": en la carpeta uploads/ (tu PC).
+  - "bd":    en la tabla archivo (hosting gratuito, cuyo disco se borra al reiniciarse).
 """
 import uuid
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import text
 
+from app.core.config import configuracion
 from app.core.constantes import TAMANO_MAXIMO_FOTO, TAMANO_MAXIMO_MANUAL
+from app.core.database import SesionLocal
 
 CARPETA_UPLOADS = Path("uploads")
 CARPETA_EQUIPOS = CARPETA_UPLOADS / "equipos"
+EN_BD = configuracion.almacen_archivos == "bd"
+
+TIPOS_MIME = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp", "pdf": "application/pdf"}
 
 
 def _tipo_imagen(datos: bytes) -> str | None:
@@ -36,11 +44,18 @@ def _leer_con_limite(archivo: UploadFile, limite: int, nombre_limite: str) -> by
 
 
 def _guardar(datos: bytes, codigo: str, extension: str) -> str:
-    CARPETA_EQUIPOS.mkdir(parents=True, exist_ok=True)
     # Nombre único para que el navegador no muestre una versión vieja guardada en caché
     nombre = f"{codigo}_{uuid.uuid4().hex[:8]}.{extension}"
-    (CARPETA_EQUIPOS / nombre).write_bytes(datos)
-    return f"equipos/{nombre}"
+    ruta = f"equipos/{nombre}"
+    if EN_BD:
+        with SesionLocal() as db:
+            db.execute(text("INSERT INTO archivo (ruta, tipo_mime, contenido) VALUES (:r, :t, :c)"),
+                       {"r": ruta, "t": TIPOS_MIME[extension], "c": datos})
+            db.commit()
+    else:
+        CARPETA_EQUIPOS.mkdir(parents=True, exist_ok=True)
+        (CARPETA_EQUIPOS / nombre).write_bytes(datos)
+    return ruta
 
 
 def guardar_foto(archivo: UploadFile, codigo: str) -> str:
@@ -63,10 +78,23 @@ def borrar(ruta_relativa: str | None) -> None:
     """Borra un archivo anterior. Si ya no existe, no pasa nada."""
     if not ruta_relativa:
         return
+    if EN_BD:
+        with SesionLocal() as db:
+            db.execute(text("DELETE FROM archivo WHERE ruta = :r"), {"r": ruta_relativa})
+            db.commit()
+        return
     ruta = (CARPETA_UPLOADS / ruta_relativa).resolve()
     # Seguridad: solo se borra dentro de uploads/
     if CARPETA_UPLOADS.resolve() in ruta.parents:
         ruta.unlink(missing_ok=True)
+
+
+def leer_de_bd(ruta_relativa: str) -> tuple[bytes, str] | None:
+    """Contenido y tipo de un archivo guardado en la tabla archivo (modo "bd")."""
+    with SesionLocal() as db:
+        fila = db.execute(text("SELECT contenido, tipo_mime FROM archivo WHERE ruta = :r"),
+                          {"r": ruta_relativa}).first()
+    return (bytes(fila.contenido), fila.tipo_mime) if fila else None
 
 
 def url_publica(ruta_relativa: str | None) -> str | None:

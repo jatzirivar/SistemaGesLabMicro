@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import Icono from './Icono'
 
 /** Cierra un menú desplegable al dar clic fuera de él o al presionar Esc. */
-function useCerrarAlSalir(abierto, cerrar) {
+export function useCerrarAlSalir(abierto, cerrar) {
   const ref = useRef(null)
   useEffect(() => {
     if (!abierto) return
@@ -27,8 +27,9 @@ function useCerrarAlSalir(abierto, cerrar) {
  * inicio:  ruta a la que lleva el logo
  * enlaces: opciones visibles en la barra (estudiante). En celular pasan al menú ☰.
  * menu:    opciones del menú ☰ (encargado). Si hay menú, el botón ☰ se ve siempre.
+ * acciones: botones extra a la derecha del nombre (estudiante: avisos y carrito).
  */
-export default function BarraSuperior({ inicio, enlaces = [], menu = [] }) {
+export default function BarraSuperior({ inicio, enlaces = [], menu = [], acciones = null }) {
   const { usuario, cerrarSesion } = useAuth()
   const navegar = useNavigate()
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -115,31 +116,34 @@ export default function BarraSuperior({ inicio, enlaces = [], menu = [] }) {
         )}
 
         {/* Nombre del usuario: al presionarlo muestra el nombre completo, boleta o correo, y Cerrar sesión */}
-        <div ref={refUsuario} className="relative ml-auto">
-          <button
-            type="button"
-            aria-expanded={usuarioAbierto}
-            onClick={() => setUsuarioAbierto((v) => !v)}
-            className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20"
-          >
-            <Icono nombre="usuario" className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {usuario?.nombre} {usuario?.apellido_pat?.[0]}.
-            </span>
-          </button>
-          {usuarioAbierto && (
-            <div className="absolute right-0 mt-2 w-64 rounded-lg border border-slate-200 bg-white py-1 text-sm text-slate-700 shadow-lg">
-              <div className="border-b border-slate-100 px-4 py-2">
-                <p className="font-medium text-slate-800">{usuario?.nombre_completo}</p>
-                <p className="text-xs text-slate-500">
-                  {usuario?.rol === 'estudiante' ? `Boleta ${usuario?.boleta}` : usuario?.correo}
-                </p>
+        <div className="ml-auto flex items-center gap-2">
+          <div ref={refUsuario} className="relative">
+            <button
+              type="button"
+              aria-expanded={usuarioAbierto}
+              onClick={() => setUsuarioAbierto((v) => !v)}
+              className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20"
+            >
+              <Icono nombre="usuario" className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {usuario?.nombre} {usuario?.apellido_pat?.[0]}.
+              </span>
+            </button>
+            {usuarioAbierto && (
+              <div className="absolute right-0 mt-2 w-64 rounded-lg border border-slate-200 bg-white py-1 text-sm text-slate-700 shadow-lg">
+                <div className="border-b border-slate-100 px-4 py-2">
+                  <p className="font-medium text-slate-800">{usuario?.nombre_completo}</p>
+                  <p className="text-xs text-slate-500">
+                    {usuario?.rol === 'estudiante' ? `Boleta ${usuario?.boleta}` : usuario?.correo}
+                  </p>
+                </div>
+                <button type="button" onClick={salir} className="flex w-full items-center gap-2 px-4 py-2 hover:bg-slate-50">
+                  <Icono nombre="salir" className="h-4 w-4" /> Cerrar sesión
+                </button>
               </div>
-              <button type="button" onClick={salir} className="flex w-full items-center gap-2 px-4 py-2 hover:bg-slate-50">
-                <Icono nombre="salir" className="h-4 w-4" /> Cerrar sesión
-              </button>
-            </div>
-          )}
+            )}
+          </div>
+          {acciones}
         </div>
       </div>
     </header>

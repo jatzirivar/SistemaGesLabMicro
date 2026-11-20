@@ -139,6 +139,23 @@ def _revisar(db: Session, estudiante: Estudiante, datos: DatosSolicitud, bloquea
     }
 
 
+def reglas(db: Session) -> dict:
+    """Configuración vigente (solo lectura) y los próximos días inhábiles."""
+    c = comun.configuracion_lab(db)
+    proximos = db.scalars(
+        select(DiaInhabil).where(DiaInhabil.fecha_inhabil >= ahora().date())
+        .order_by(DiaInhabil.fecha_inhabil).limit(60)
+    )
+    return {
+        "horario_apertura": c.horario_apertura, "horario_cierre": c.horario_cierre,
+        "hora_limite_devolucion": c.hora_limite_devolucion, "dias_servicio": sorted(c.dias_servicio),
+        "duracion_ordinaria": c.duracion_ordinaria, "duracion_prorroga": c.duracion_prorroga,
+        "duracion_maxima": c.duracion_maxima, "limite_equipos": c.limite_equipos,
+        "limite_por_modelo": c.limite_por_modelo, "tolerancia_retiro": c.tolerancia_retiro,
+        "dias_inhabiles": [{"fecha": d.fecha_inhabil, "descripcion": d.descripcion} for d in proximos],
+    }
+
+
 def verificar_solicitud(db: Session, usuario: UsuarioSesion, datos: DatosSolicitud) -> dict:
     """Revisa el carrito y el horario sin guardar nada (para habilitar "Enviar")."""
     return _revisar(db, usuario.cuenta, datos, bloquear=False)

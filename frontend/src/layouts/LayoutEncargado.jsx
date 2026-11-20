@@ -1,6 +1,7 @@
 // Estructura de las pantallas del encargado (Pantalla 8 y sus secciones).
 // El mismo encabezado que el estudiante; las secciones están en el menú ☰.
 import { Outlet } from 'react-router-dom'
+import AccionesEncargado from '../components/AccionesEncargado'
 import BarraSuperior from '../components/BarraSuperior'
 import PiePagina from '../components/PiePagina'
 
@@ -17,7 +18,7 @@ const menu = [
 export default function LayoutEncargado() {
   return (
     <div className="flex min-h-screen flex-col">
-      <BarraSuperior inicio="/encargado/panel" menu={menu} />
+      <BarraSuperior inicio="/encargado/panel" menu={menu} acciones={<AccionesEncargado />} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
         <Outlet />
       </main>

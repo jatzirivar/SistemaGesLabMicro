@@ -255,6 +255,23 @@ class CategoriaBajoStock(BaseModel):
     total_equipos: int
 
 
+class DevolucionDelDia(BaseModel):
+    folio: str
+    estudiante: str
+    boleta: str
+    fecha_hora_limite_devolucion: datetime
+
+
+class AvisoEncargado(BaseModel):
+    """Aviso calculado al momento (no se guarda en la BD). `id` es estable para recordar si ya se leyó."""
+    id: str
+    tipo: str
+    titulo: str
+    mensaje: str
+    folio: str | None
+    fecha_hora: datetime
+
+
 class PanelEncargado(BaseModel):
     """Contadores del SRS 8. Se recalculan en cada consulta."""
     solicitudes_pendientes: int
@@ -264,6 +281,7 @@ class PanelEncargado(BaseModel):
     entregas_del_dia: int          # Aprobadas con retiro hoy
     devoluciones_del_dia: int      # Entregadas que deben devolverse hoy
     categorias_bajo_stock: list[CategoriaBajoStock]
+    devoluciones_hoy: list[DevolucionDelDia]   # detalle de "devoluciones del día"
 
 
 class HistorialEstudiante(BaseModel):

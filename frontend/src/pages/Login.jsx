@@ -44,10 +44,11 @@ export default function Login() {
     <div className="flex min-h-screen flex-col bg-white">
       <EncabezadoPublico />
 
-      <main className="flex flex-1 justify-center px-4 py-10">
+      <main className="flex flex-1 flex-col items-center px-4 py-10">
+        {/* El título va fuera del formulario para caber en una sola línea en pantallas medianas y grandes */}
+        <h1 className="text-center text-3xl font-semibold text-verde-700 sm:whitespace-nowrap sm:text-4xl">Laboratorio de Microprocesadores</h1>
         <div className="w-full max-w-sm">
-          <h1 className="text-center text-3xl font-semibold text-verde-700">Laboratorio de Microprocesadores</h1>
-          <h2 className="mt-6 text-lg font-medium text-slate-800">Iniciar Sesión</h2>
+          <h2 className="mt-8 text-lg font-medium text-slate-800">Iniciar Sesión</h2>
 
           <form onSubmit={enviar} className="mt-4 space-y-4" noValidate>
             <div>

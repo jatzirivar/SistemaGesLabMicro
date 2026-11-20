@@ -11,6 +11,7 @@ from app.schemas.prestamos import (
     EnvioSolicitud,
     MisSolicitudes,
     PanelEstudiante,
+    ReglasSolicitud,
     RevisionSolicitud,
     SolicitudCreada,
 )
@@ -32,6 +33,12 @@ def panel(usuario: UsuarioSesion = Depends(requerir_estudiante), db: Session = D
 def historial(usuario: UsuarioSesion = Depends(requerir_estudiante), db: Session = Depends(obtener_sesion)):
     """Incidencias y sanciones del alumno, con fechas de inicio y fin (SRS 3.2)."""
     return sanciones_servicio.historial_estudiante(db, usuario.id)
+
+
+@router.get("/reglas", response_model=ReglasSolicitud)
+def reglas(usuario: UsuarioSesion = Depends(requerir_estudiante), db: Session = Depends(obtener_sesion)):
+    """Horario de servicio, duración y límites del carrito, para mostrarlos al estudiante."""
+    return servicio.reglas(db)
 
 
 @router.post("/verificar", response_model=RevisionSolicitud)

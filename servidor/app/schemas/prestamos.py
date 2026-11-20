@@ -128,6 +128,26 @@ class DetallePrestamoRespuesta(ResumenPrestamo):
     aviso: str                          # SRS 3.5: no cancelar a tiempo es motivo de sanción
 
 
+class DiaInhabilAviso(BaseModel):
+    fecha: date
+    descripcion: str
+
+
+class ReglasSolicitud(BaseModel):
+    """Horario y límites vigentes para armar la solicitud (Pantallas 5 y 6). Solo lectura."""
+    horario_apertura: time          # primera hora para retirar
+    horario_cierre: time            # última hora para retirar
+    hora_limite_devolucion: time    # última hora para devolver
+    dias_servicio: list[int]        # 1 = lunes ... 7 = domingo
+    duracion_ordinaria: int         # minutos
+    duracion_prorroga: int
+    duracion_maxima: int
+    limite_equipos: int
+    limite_por_modelo: int
+    tolerancia_retiro: int
+    dias_inhabiles: list[DiaInhabilAviso]   # próximos días sin servicio
+
+
 class SolicitudCreada(BaseModel):
     folio: str
     mensaje: str

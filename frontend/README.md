@@ -31,10 +31,15 @@ src/
 ├── App.jsx             Mapa de pantallas (rutas)
 ├── index.css           Tailwind y colores del sistema (guinda y verde)
 ├── api/cliente.js      Peticiones al API con el token de sesión
-├── context/            Sesión del usuario (iniciar / cerrar sesión, rol)
-├── components/         Piezas reutilizables (íconos, mensajes, cargando...)
-├── layouts/            Estructura del estudiante (barra superior) y del encargado (menú lateral)
+├── context/            Sesión del usuario, carrito (se guarda en el navegador) y avisos
+├── components/         Piezas reutilizables (íconos, mensajes, etiquetas de estado, modal...)
+├── layouts/            Estructura del estudiante y del encargado (barra superior y menú ☰)
+├── hooks/useApi.js     Consultas GET al API con carga y error
+├── utils/formato.js    Fechas y horas en la zona de la Ciudad de México
 └── pages/              Pantallas: login, estudiante/ y encargado/
+    ├── estudiante/     Panel, Catálogo, Carrito, ConfigurarSolicitud, MisSolicitudes, DetalleSolicitud
+    └── encargado/      Panel, Solicitudes (pendientes, entrega y devolución), Inventario,
+                        Usuarios y FichaAlumno, Historial, Configuración
 ```
 
 ## Menú del encargado

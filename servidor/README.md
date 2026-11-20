@@ -95,6 +95,7 @@ En `/docs`, usa el botón **Authorize** y pega el `access_token` del login.
 | Método | Ruta | Qué hace | SRS |
 |---|---|---|---|
 | GET | `/api/estudiante/panel` | Préstamos activos, pendientes y alertas | 3 |
+| GET | `/api/solicitudes/reglas` | Horario de servicio, duración y límites del carrito (solo lectura) | 5, 6 |
 | POST | `/api/solicitudes/verificar` | Revisa carrito y horario sin guardar | 5, 6 |
 | POST | `/api/solicitudes` | Envía la solicitud (queda Pendiente) | 6, 6.1, 6.2 |
 | GET | `/api/solicitudes` | En curso, en revisión y finalizadas | 3.1 |
@@ -130,6 +131,7 @@ sanción por retraso".
 | Método | Ruta | Qué hace | SRS |
 |---|---|---|---|
 | GET | `/api/encargado/panel` | Contadores y categorías con bajo stock | 8 |
+| GET | `/api/encargado/avisos` | Avisos calculados de la campana del encargado (no se guardan) | 8 |
 | GET | `/api/ventanilla/entregas?buscar=` | Aprobadas por entregar (boleta o código) + verificaciones | 8.3, 8.4 |
 | POST | `/api/ventanilla/entregas/{folio}/verificar-equipo` | ¿El código escaneado pertenece al préstamo? | 8.5 |
 | POST | `/api/ventanilla/entregas/{folio}` | Checklist + PIN (3 intentos → bloqueo 15 min) | 8.5 |
@@ -174,3 +176,14 @@ Reglas:
 | GET | `/api/encargado/historial/pdf` | Exportación a PDF con los mismos filtros | 8.15 |
 
 **Estudiante:** `GET /api/solicitudes/{folio}/comprobante/pdf` → comprobante de retiro en PDF (SRS 7.2, sin PIN).
+
+## Publicación en internet (Render + Neon)
+
+Ver `PUBLICAR_EN_INTERNET.md` en la carpeta principal. Variables que usa la versión en línea:
+
+| Variable | Valor en Render | En tu PC |
+|---|---|---|
+| `DATABASE_URL` | Cadena de conexión de Neon (sin *pooling*) | No se usa (se usan `DB_*`) |
+| `ALMACEN_ARCHIVOS` | `bd` (fotos y manuales en la tabla `archivo`, script 08) | `disco` (carpeta `uploads/`) |
+| `JWT_SECRETO` | La genera Render | La de tu `.env` |
+| `CARPETA_FRONTEND` | `../frontend/dist` (por defecto) | Si no existe, no se sirve la página |

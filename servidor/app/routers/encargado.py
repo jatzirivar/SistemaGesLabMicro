@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import obtener_sesion
 from app.core.dependencias import UsuarioSesion, requerir_encargado
 from app.schemas.ventanilla import (
+    AvisoEncargado,
     IncidenciaRespuesta,
     PanelEncargado,
     RetiroSancion,
@@ -21,6 +22,12 @@ router = APIRouter(prefix="/api/encargado", tags=["Panel, incidencias y sancione
 def panel(db: Session = Depends(obtener_sesion)):
     """Contadores del Panel Operativo y categorías con bajo stock (SRS 8)."""
     return ventanilla_servicio.panel(db)
+
+
+@router.get("/avisos", response_model=list[AvisoEncargado])
+def avisos(db: Session = Depends(obtener_sesion)):
+    """Campana del encargado: solicitudes por revisar, retiros de hoy, vencidos y devoluciones próximas."""
+    return ventanilla_servicio.avisos_encargado(db)
 
 
 @router.get("/incidencias", response_model=list[IncidenciaRespuesta])

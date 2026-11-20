@@ -1,0 +1,25 @@
+# Publicación en Render (plan gratuito). Va en la carpeta principal del repositorio.
+# Un solo servicio: compila la página (frontend) y corre el servidor (FastAPI) que la entrega.
+# La base de datos está en Neon: su cadena de conexión se pega en DATABASE_URL.
+services:
+  - type: web
+    name: sgpl-esime
+    runtime: python
+    plan: free
+    region: ohio
+    buildCommand: cd frontend && npm install && npm run build && cd ../servidor && pip install -r requirements.txt
+    startCommand: cd servidor && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/salud
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.4"
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false          # Render la pide al crear el servicio (cadena de Neon)
+      - key: JWT_SECRETO
+        generateValue: true  # Render genera una clave secreta aleatoria
+      - key: ALMACEN_ARCHIVOS
+        value: bd
+      - key: CORS_ORIGENES
+        value: '[]'          # la página y la API están en la misma dirección
