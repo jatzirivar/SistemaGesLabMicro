@@ -36,7 +36,7 @@ export default function AccionesEncargado() {
 
   useEffect(() => {
     const primera = setTimeout(cargar, 0)
-    const id = setInterval(cargar, 60_000)
+    const id = setInterval(cargar, 10_000)
     return () => {
       clearTimeout(primera)
       clearInterval(id)

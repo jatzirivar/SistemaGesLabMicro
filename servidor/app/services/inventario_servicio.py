@@ -6,14 +6,13 @@ import math
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException, UploadFile, status
-from sqlalchemy import Boolean, and_, case, func, not_, or_, select, text
+from sqlalchemy import Boolean, func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.constantes import (
     DISPONIBLE,
     EN_MANTENIMIENTO,
-    NO_DISPONIBLE,
     EstadoEquipo,
     EstadoPrestamo,
 )
@@ -29,26 +28,6 @@ from app.services import archivos
 # ======================================================================
 # Utilidades
 # ======================================================================
-
-
-def _expresion_disponibilidad():
-    """Disponibilidad EN ESTE MOMENTO (decisión de diseño, opción a).
-
-    Un equipo está "Disponible" si su estado es Disponible y ningún préstamo
-    activo lo ocupa ahora mismo. Si tiene una reserva más tarde, sigue
-    apareciendo disponible; el choque de horario se revisa en el carrito.
-    """
-    ahora = datetime.now(timezone.utc)
-    ocupado_ahora = func.fn_equipo_ocupado(
-        Equipo.codigo_inventario, ahora, ahora + timedelta(minutes=1), type_=Boolean
-    )
-    disponible = and_(Equipo.id_estado_equipo == EstadoEquipo.DISPONIBLE, not_(ocupado_ahora))
-    etiqueta = case(
-        (Equipo.id_estado_equipo == EstadoEquipo.EN_MANTENIMIENTO, EN_MANTENIMIENTO),
-        (disponible, DISPONIBLE),
-        else_=NO_DISPONIBLE,
-    )
-    return disponible, etiqueta
 
 
 def _filtro_busqueda(buscar: str | None):
@@ -104,14 +83,24 @@ def a_inventario(equipo: Equipo) -> dict:
     }
 
 
-def _a_catalogo(equipo: Equipo, categoria: str, disponibilidad: str) -> dict:
+def _ocupado_ahora():
+    """Un préstamo Aprobado, Entregado o Vencido lo ocupa en este momento (una Pendiente no)."""
+    ahora = datetime.now(timezone.utc)
+    return func.fn_equipo_ocupado(Equipo.codigo_inventario, ahora, ahora + timedelta(minutes=1), type_=Boolean)
+
+
+def _a_catalogo(equipo: Equipo, categoria: str, ocupado: bool) -> dict:
+    # En el catálogo ya no existe "No disponible": un equipo prestado ahora se puede pedir
+    # para otro horario. Solo "En mantenimiento" deshabilita el botón.
+    mantenimiento = equipo.id_estado_equipo == EstadoEquipo.EN_MANTENIMIENTO
     return {
         "codigo_inventario": equipo.codigo_inventario,
         "nombre": equipo.nombre,
         "id_categoria": equipo.id_categoria,
         "categoria": categoria,
-        "disponibilidad": disponibilidad,
-        "se_puede_agregar": disponibilidad == DISPONIBLE,
+        "disponibilidad": EN_MANTENIMIENTO if mantenimiento else DISPONIBLE,
+        "ocupado_ahora": bool(ocupado) and not mantenimiento,
+        "se_puede_agregar": not mantenimiento,
         "foto_url": archivos.url_publica(equipo.fotografia),
     }
 
@@ -129,22 +118,20 @@ def listar_catalogo(
     pagina: int,
     por_pagina: int,
 ) -> dict:
-    disponible, etiqueta = _expresion_disponibilidad()
-
     filtros = [Equipo.id_estado_equipo != EstadoEquipo.DADO_DE_BAJA]
     if (busqueda := _filtro_busqueda(buscar)) is not None:
         filtros.append(busqueda)
     if id_categoria:
         filtros.append(Equipo.id_categoria == id_categoria)
     if disponibilidad == DISPONIBLE:
-        filtros.append(disponible)
-    elif disponibilidad == NO_DISPONIBLE:
-        filtros.append(not_(disponible))
+        filtros.append(Equipo.id_estado_equipo != EstadoEquipo.EN_MANTENIMIENTO)
+    elif disponibilidad == EN_MANTENIMIENTO:
+        filtros.append(Equipo.id_estado_equipo == EstadoEquipo.EN_MANTENIMIENTO)
 
     total = db.scalar(select(func.count()).select_from(Equipo).where(*filtros))
 
     filas = db.execute(
-        select(Equipo, Categoria.nombre, etiqueta)
+        select(Equipo, Categoria.nombre, _ocupado_ahora())
         .join(Categoria, Categoria.id_categoria == Equipo.id_categoria)
         .where(*filtros)
         .order_by(Equipo.nombre, Equipo.codigo_inventario)
@@ -162,9 +149,8 @@ def listar_catalogo(
 
 
 def detalle_catalogo(db: Session, codigo: str) -> dict:
-    _, etiqueta = _expresion_disponibilidad()
     fila = db.execute(
-        select(Equipo, Categoria.nombre, etiqueta)
+        select(Equipo, Categoria.nombre, _ocupado_ahora())
         .join(Categoria, Categoria.id_categoria == Equipo.id_categoria)
         .where(Equipo.codigo_inventario == codigo.strip().upper(),
                Equipo.id_estado_equipo != EstadoEquipo.DADO_DE_BAJA)
@@ -172,9 +158,9 @@ def detalle_catalogo(db: Session, codigo: str) -> dict:
     if fila is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Equipo no encontrado")
 
-    equipo, categoria, disponibilidad = fila
+    equipo, categoria, ocupado = fila
     return {
-        **_a_catalogo(equipo, categoria, disponibilidad),
+        **_a_catalogo(equipo, categoria, ocupado),
         "descripcion": equipo.descripcion,
         "especificaciones": equipo.especificaciones,
         "componentes_incluidos": equipo.componentes_incluidos,

@@ -1,6 +1,7 @@
 """Generación de PDF con reportlab: comprobante de retiro (SRS 7.2) e historial (SRS 8.15)."""
 from datetime import datetime
 from io import BytesIO
+from pathlib import Path
 from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
@@ -8,12 +9,12 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import landscape, letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import HRFlowable, Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.core.tiempo import a_local, ahora
 
 TITULO_SISTEMA = "Laboratorio de Microprocesadores · ESIME CU"
-AZUL = colors.HexColor("#1F3A5F")
+AZUL = colors.HexColor("#550000")  # encabezados de reportes con el vino del SRS 1.1
 GRIS_CLARO = colors.HexColor("#EEF2F6")
 GRIS_LINEA = colors.HexColor("#B8C2CC")
 
@@ -63,52 +64,85 @@ def _tabla(datos: list[list], anchos: list[float], encabezado: bool = True) -> T
 
 # ================================================================ comprobante (SRS 7.2)
 
-def _firmas() -> Table:
-    centrado = ParagraphStyle("firma", parent=ESTILO_TEXTO, alignment=TA_CENTER)
-    tabla = Table([["", "", ""], [_p("Firma del estudiante", centrado), "", _p("Firma del encargado", centrado)]],
-                  colWidths=[7.5 * cm, 2 * cm, 7.5 * cm], rowHeights=[1.6 * cm, None])
-    tabla.setStyle(TableStyle([
-        ("LINEBELOW", (0, 0), (0, 0), 0.6, colors.black),
-        ("LINEBELOW", (2, 0), (2, 0), 0.6, colors.black),
-    ]))
+GUINDA = colors.HexColor("#550000")  # vino institucional (SRS 1.1)
+GRIS_ETIQUETA = colors.HexColor("#F2F2F2")
+GRIS_BORDE = colors.HexColor("#C8C8C8")
+ESCUDO = Path(__file__).resolve().parent.parent / "static" / "logo-esime.png"
+
+_C_TITULO = ParagraphStyle("c_titulo", parent=_estilos["Normal"], fontName="Helvetica-Bold", fontSize=22,
+                           leading=26, textColor=GUINDA)
+_C_SUBTITULO = ParagraphStyle("c_subtitulo", parent=_estilos["Normal"], fontSize=9.5, leading=12,
+                              textColor=colors.HexColor("#555555"))
+_C_SECCION = ParagraphStyle("c_seccion", parent=_estilos["Normal"], fontName="Helvetica-Bold", fontSize=14,
+                            leading=18, spaceBefore=14, spaceAfter=8)
+_C_ETIQUETA = ParagraphStyle("c_etiqueta", parent=_estilos["Normal"], fontName="Helvetica-Bold", fontSize=10,
+                             leading=12)
+_C_VALOR = ParagraphStyle("c_valor", parent=_estilos["Normal"], fontSize=10, leading=12)
+_C_NOTA = ParagraphStyle("c_nota", parent=_estilos["Normal"], fontSize=9.5, leading=12, spaceBefore=10)
+
+
+def _tabla_comprobante(filas: list[list], anchos: list[float], encabezado: bool) -> Table:
+    tabla = Table(filas, colWidths=anchos, hAlign="LEFT")
+    estilo = [
+        ("GRID", (0, 0), (-1, -1), 0.5, GRIS_BORDE),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+    ]
+    if encabezado:
+        estilo.append(("BACKGROUND", (0, 0), (-1, 0), GRIS_ETIQUETA))   # fila de títulos
+    else:
+        estilo.append(("BACKGROUND", (0, 0), (0, -1), GRIS_ETIQUETA))   # columna de etiquetas
+    tabla.setStyle(TableStyle(estilo))
     return tabla
 
 
 def comprobante(datos: dict) -> bytes:
-    """Folio, estudiante, boleta, equipos (nombre y código) y fecha/hora de retiro y devolución."""
+    """SRS 7.2: escudo, folio, estudiante, boleta, grupo, retiro, devolución y equipos (nombre y código).
+
+    Sin firmas y sin el PIN (por seguridad el PIN solo se muestra en el sistema).
+    """
     salida = BytesIO()
     doc = SimpleDocTemplate(salida, pagesize=letter, title=f"Comprobante {datos['folio']}",
-                            leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm)
+                            leftMargin=1.8 * cm, rightMargin=1.8 * cm, topMargin=1.6 * cm, bottomMargin=1.6 * cm)
+    ancho_util = letter[0] - doc.leftMargin - doc.rightMargin
 
-    general = [
-        [_p("Folio", ESTILO_TEXTO), _p(datos["folio"], ESTILO_TEXTO)],
-        [_p("Estado", ESTILO_TEXTO), _p(datos["estado"], ESTILO_TEXTO)],
-        [_p("Estudiante", ESTILO_TEXTO), _p(datos["estudiante"], ESTILO_TEXTO)],
-        [_p("Boleta", ESTILO_TEXTO), _p(datos["boleta"], ESTILO_TEXTO)],
-        [_p("Grupo", ESTILO_TEXTO), _p(datos["grupo"], ESTILO_TEXTO)],
-        [_p("Retiro", ESTILO_TEXTO), _p(_fecha(datos["fecha_hora_retiro"]), ESTILO_TEXTO)],
-        [_p("Devolución", ESTILO_TEXTO), _p(_fecha(datos["fecha_hora_devolucion"]), ESTILO_TEXTO)],
-    ]
-    tabla_general = _tabla(general, [4 * cm, 13 * cm], encabezado=False)
-    tabla_general.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, -1), GRIS_CLARO),
-                                       ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold")]))
+    # Encabezado: escudo a la izquierda, título y subtítulo a la derecha
+    texto = [Paragraph(f"Comprobante de retiro {escape(datos['folio'])}", _C_TITULO),
+             Paragraph(f"ESIME Culhuacán · Laboratorio de Microprocesadores · Generado el "
+                       f"{ahora():%d/%m/%Y, %H:%M:%S}", _C_SUBTITULO)]
+    escudo = Image(str(ESCUDO), width=1.9 * cm, height=1.9 * cm * 143 / 160) if ESCUDO.is_file() else ""
+    encabezado = Table([[escudo, texto]], colWidths=[2.4 * cm, ancho_util - 2.4 * cm], hAlign="LEFT")
+    encabezado.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                                    ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
 
-    equipos = [[_p("Código", ESTILO_ENCABEZADO), _p("Equipo", ESTILO_ENCABEZADO),
-                _p("Categoría", ESTILO_ENCABEZADO)]]
-    equipos += [[_p(e["codigo_inventario"]), _p(e["nombre"]), _p(e["categoria"])] for e in datos["equipos"]]
+    def fila(etiqueta, valor):
+        return [Paragraph(etiqueta, _C_ETIQUETA), Paragraph(escape(str(valor)), _C_VALOR)]
+
+    general = _tabla_comprobante([
+        [Paragraph("Folio", _C_ETIQUETA), Paragraph(f"<b>{escape(datos['folio'])}</b>", _C_VALOR)],
+        fila("Estudiante", datos["estudiante"]),
+        fila("Boleta", datos["boleta"]),
+        fila("Grupo", datos["grupo"]),
+        fila("Retiro", f"{a_local(datos['fecha_hora_retiro']):%d/%m/%Y %H:%M} h"),
+        fila("Devolución", f"{a_local(datos['fecha_hora_devolucion']):%d/%m/%Y %H:%M} h"),
+    ], [2.9 * cm, 7 * cm], encabezado=False)
+
+    equipos = [[Paragraph("Equipo", _C_ETIQUETA), Paragraph("Código", _C_ETIQUETA)]]
+    equipos += [[Paragraph(escape(e["nombre"]), _C_VALOR), Paragraph(escape(e["codigo_inventario"]), _C_VALOR)]
+                for e in datos["equipos"]]
 
     elementos = [
-        Paragraph("Comprobante de retiro de equipo", ESTILO_TITULO),
-        Paragraph(escape(TITULO_SISTEMA), ESTILO_SUBTITULO),
-        tabla_general,
-        Spacer(1, 12),
-        Paragraph("<b>Equipos</b>", ESTILO_TEXTO),
-        Spacer(1, 4),
-        _tabla(equipos, [3 * cm, 9.5 * cm, 4.5 * cm]),
-        Spacer(1, 30),
-        _firmas(),
+        encabezado,
+        Spacer(1, 6),
+        HRFlowable(width="100%", thickness=2, color=GUINDA, spaceBefore=4, spaceAfter=12),
+        general,
+        Paragraph("Equipos", _C_SECCION),
+        _tabla_comprobante(equipos, [ancho_util * 0.72, ancho_util * 0.28], encabezado=True),
+        Paragraph("Presenta tu PIN en ventanilla. Por seguridad el PIN no se imprime.", _C_NOTA),
     ]
-    doc.build(elementos, onFirstPage=_numerar_paginas, onLaterPages=_numerar_paginas)
+    doc.build(elementos)
     return salida.getvalue()
 
 

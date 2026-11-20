@@ -282,65 +282,84 @@ function ChecklistEntrega({ prestamo, alVolver, alTerminar }) {
         </div>
       ))}
 
-      <h3 className="mt-6 text-sm font-semibold text-slate-900">2. Revisa los componentes de cada equipo</h3>
-      <ul className="mt-2 space-y-3">
-        {prestamo.equipos.map((e) => {
-          const v = verificados[e.codigo_inventario]
-          const lista = componentes[e.codigo_inventario] ?? []
-          return (
-            <li key={e.codigo_inventario} className={`rounded-xl border p-4 ${v ? 'border-verde-600/40 bg-verde-50/40' : 'border-slate-200 bg-slate-50'}`}>
-              <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                {v ? <Icono nombre="check" className="h-4 w-4 text-verde-700" /> : <Icono nombre="candado" className="h-4 w-4 text-slate-400" />}
-                {e.nombre} · <span className="font-mono">{e.codigo_inventario}</span>
-              </p>
-              {!v && <p className="mt-1 text-xs text-slate-500">Verifica el código para revisar sus componentes.</p>}
-              {v && (
-                <div className="mt-3 space-y-2">
-                  {lista.length > 0 ? (
-                    lista.map((comp, i) => (
-                      <label key={comp} className="flex items-center gap-2 text-sm text-slate-700">
-                        <input type="checkbox" checked={v.marcas[i]} onChange={(ev) => marcar(e.codigo_inventario, i, ev.target.checked)} className="h-4 w-4 accent-guinda-800" />
-                        {comp}
-                      </label>
-                    ))
-                  ) : (
-                    <label className="flex items-center gap-2 text-sm text-slate-700">
-                      <input type="checkbox" checked={v.marcas[0]} onChange={(ev) => marcar(e.codigo_inventario, 0, ev.target.checked)} className="h-4 w-4 accent-guinda-800" />
-                      Se entrega completo
-                    </label>
-                  )}
-                  {!v.marcas.every(Boolean) && <p className="text-xs text-amber-700">Si no marcas todas las casillas, se registrará como entregado incompleto.</p>}
-                  <Texto
-                    id={`obs-${e.codigo_inventario}`}
-                    etiqueta="Observaciones (opcional)"
-                    value={v.obs}
-                    maxLength={255}
-                    rows={2}
-                    onChange={(ev) => setVerificados((x) => ({ ...x, [e.codigo_inventario]: { ...x[e.codigo_inventario], obs: ev.target.value } }))}
-                  />
-                </div>
-              )}
-            </li>
-          )
-        })}
+      {/* Avance del paso 1: solo nombres, sin códigos, para que el encargado los lea de cada equipo */}
+      <ul className="mt-3 flex flex-wrap gap-2">
+        {prestamo.equipos.map((e) => (
+          <li
+            key={e.codigo_inventario}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+              verificados[e.codigo_inventario] ? 'bg-verde-50 text-verde-800' : 'bg-slate-100 text-slate-500'
+            }`}
+          >
+            <Icono nombre={verificados[e.codigo_inventario] ? 'check' : 'candado'} className="h-3.5 w-3.5" />
+            {e.nombre}
+          </li>
+        ))}
       </ul>
+      {!todos && (
+        <p className="mt-2 text-xs text-slate-500">
+          Verificados {Object.keys(verificados).length} de {prestamo.equipos.length}. Los componentes y el PIN aparecen al verificar todos los códigos.
+        </p>
+      )}
 
-      <h3 className="mt-6 text-sm font-semibold text-slate-900">3. PIN de 4 dígitos que muestra el estudiante</h3>
-      {!todos && <p className="mt-1 text-xs text-slate-500">Se habilita cuando verifiques el código de todos los equipos.</p>}
-      <div className="mt-2 flex flex-wrap items-center gap-3">
-        <input
-          value={pin}
-          onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-          disabled={!todos}
-          inputMode="numeric"
-          placeholder="••••"
-          aria-label="PIN"
-          className={`${claseCampo.replace('w-full', 'w-36')} text-center font-mono text-2xl tracking-[0.5em]`}
-        />
-        <button type="button" className={boton.primario} disabled={!todos || !pinValido || enviando} onClick={registrar}>
-          {enviando ? 'Registrando...' : 'Registrar entrega'}
-        </button>
-      </div>
+      {todos && (
+        <>
+          <h3 className="mt-6 text-sm font-semibold text-slate-900">2. Revisa los componentes de cada equipo</h3>
+          <ul className="mt-2 space-y-3">
+            {prestamo.equipos.map((e) => {
+              const v = verificados[e.codigo_inventario]
+              const lista = componentes[e.codigo_inventario] ?? []
+              return (
+                <li key={e.codigo_inventario} className="rounded-xl border border-verde-600/40 bg-verde-50/40 p-4">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <Icono nombre="check" className="h-4 w-4 text-verde-700" />
+                    {e.nombre} · <span className="font-mono">{e.codigo_inventario}</span>
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {lista.length > 0 ? (
+                      lista.map((comp, i) => (
+                        <label key={comp} className="flex items-center gap-2 text-sm text-slate-700">
+                          <input type="checkbox" checked={v.marcas[i]} onChange={(ev) => marcar(e.codigo_inventario, i, ev.target.checked)} className="h-4 w-4 accent-guinda-800" />
+                          {comp}
+                        </label>
+                      ))
+                    ) : (
+                      <label className="flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" checked={v.marcas[0]} onChange={(ev) => marcar(e.codigo_inventario, 0, ev.target.checked)} className="h-4 w-4 accent-guinda-800" />
+                        Se entrega completo
+                      </label>
+                    )}
+                    {!v.marcas.every(Boolean) && <p className="text-xs text-amber-700">Si no marcas todas las casillas, se registrará como entregado incompleto.</p>}
+                    <Texto
+                      id={`obs-${e.codigo_inventario}`}
+                      etiqueta="Observaciones (opcional)"
+                      value={v.obs}
+                      maxLength={255}
+                      rows={2}
+                      onChange={(ev) => setVerificados((x) => ({ ...x, [e.codigo_inventario]: { ...x[e.codigo_inventario], obs: ev.target.value } }))}
+                    />
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+
+          <h3 className="mt-6 text-sm font-semibold text-slate-900">3. PIN de 4 dígitos que muestra el estudiante</h3>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <input
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              inputMode="numeric"
+              placeholder="••••"
+              aria-label="PIN"
+              className={`${claseCampo.replace('w-full', 'w-36')} text-center font-mono text-2xl tracking-[0.5em]`}
+            />
+            <button type="button" className={boton.primario} disabled={!pinValido || enviando} onClick={registrar}>
+              {enviando ? 'Registrando...' : 'Registrar entrega'}
+            </button>
+          </div>
+        </>
+      )}
       {error && (
         <div className="mt-3">
           <Mensaje tipo="error" errores={error.errores}>
@@ -428,20 +447,25 @@ function ResultadoFinal({ r, alCerrar }) {
   )
 }
 
-const ESTADOS = ['Bueno', 'Dañado', 'Incompleto']
+// Tipos de incidencia que ve el encargado y cómo se registran (SRS 8.6, 8.7 y 8.9)
+const TIPOS = {
+  Dañado: { estado: 'Dañado', tipo: 'Daño', efecto: 'El equipo pasa a "En mantenimiento" y se aplica una sanción de 15 días.' },
+  Incompleto: { estado: 'Incompleto', tipo: 'Daño', efecto: 'Falta un componente: el equipo pasa a "En mantenimiento" y se aplica una sanción de 15 días.' },
+  Retraso: { estado: 'Bueno', tipo: 'Retraso', efecto: 'El equipo regresa como Disponible y se aplica una sanción de 7 días (una sola por préstamo).' },
+  Pérdida: { estado: 'Incompleto', tipo: 'Pérdida', efecto: 'El equipo no se devolvió: se da de baja del catálogo y la sanción es indefinida.' },
+}
 
 function Inspeccion({ prestamo, alVolver, alTerminar }) {
-  const [revision, setRevision] = useState({}) // codigo -> { estado, obs, incidencia }
-  const [modal, setModal] = useState(null) // { codigo, estado }
+  const [revision, setRevision] = useState({}) // codigo -> { resultado: 'Bueno' | 'Incidencia', tipo, incidencia, obs }
+  const [modal, setModal] = useState(null) // codigo del equipo al que se le captura la incidencia
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState(null)
 
-  const elegir = (codigo, estado) => {
-    if (estado === 'Bueno') setRevision((r) => ({ ...r, [codigo]: { ...r[codigo], estado, incidencia: null } }))
-    // Dañado o Incompleto: se abre la captura de incidencia (SRS 8.6)
-    else setModal({ codigo, estado })
-  }
-  const completos = prestamo.equipos.every((e) => revision[e.codigo_inventario]?.estado)
+  const cambiar = (codigo, valores) => setRevision((r) => ({ ...r, [codigo]: { ...r[codigo], ...valores } }))
+  const completos = prestamo.equipos.every((e) => {
+    const v = revision[e.codigo_inventario]
+    return v?.resultado === 'Bueno' || (v?.resultado === 'Incidencia' && v.incidencia)
+  })
 
   const registrar = async () => {
     setEnviando(true)
@@ -452,7 +476,15 @@ function Inspeccion({ prestamo, alVolver, alTerminar }) {
         datos: {
           equipos: prestamo.equipos.map((e) => {
             const v = revision[e.codigo_inventario]
-            return { codigo_inventario: e.codigo_inventario, estado: v.estado, observaciones: v.obs?.trim() || null, incidencia: v.incidencia ?? null }
+            const obs = v.obs?.trim() || null
+            if (v.resultado === 'Bueno') return { codigo_inventario: e.codigo_inventario, estado: 'Bueno', observaciones: obs, incidencia: null }
+            const t = TIPOS[v.tipo]
+            return {
+              codigo_inventario: e.codigo_inventario,
+              estado: t.estado,
+              observaciones: obs,
+              incidencia: { tipo: t.tipo, descripcion: v.incidencia.descripcion, resolucion: v.incidencia.resolucion },
+            }
           }),
         },
       })
@@ -473,7 +505,9 @@ function Inspeccion({ prestamo, alVolver, alTerminar }) {
         {prestamo.estudiante} · {prestamo.boleta} · límite {fechaHora(prestamo.fecha_hora_limite_devolucion)}
       </p>
       {prestamo.minutos_de_retraso > 0 && (
-        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{prestamo.minutos_de_retraso} min de retraso: se registrará la incidencia de Retraso automáticamente.</p>
+        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          {prestamo.minutos_de_retraso} min de retraso: se registrará la incidencia de Retraso automáticamente.
+        </p>
       )}
 
       <h3 className="mt-6 text-sm font-semibold text-slate-900">Inspección de cada equipo</h3>
@@ -488,36 +522,40 @@ function Inspeccion({ prestamo, alVolver, alTerminar }) {
               {e.obs_entrega && <p className="text-xs text-slate-500">Al entregar: {e.obs_entrega}</p>}
               {e.entregado_completo === false && <p className="text-xs text-amber-700">Se entregó incompleto.</p>}
               <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={`Estado de ${e.codigo_inventario}`}>
-                {ESTADOS.map((est) => (
-                  <button
-                    key={est}
-                    type="button"
-                    role="radio"
-                    aria-checked={v?.estado === est}
-                    onClick={() => elegir(e.codigo_inventario, est)}
-                    className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
-                      v?.estado === est
-                        ? est === 'Bueno'
-                          ? 'border-verde-700 bg-verde-700 text-white'
-                          : 'border-red-700 bg-red-700 text-white'
-                        : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'
-                    }`}
-                  >
-                    {est}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={v?.resultado === 'Bueno'}
+                  onClick={() => cambiar(e.codigo_inventario, { resultado: 'Bueno', tipo: null, incidencia: null })}
+                  className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
+                    v?.resultado === 'Bueno' ? 'border-verde-700 bg-verde-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'
+                  }`}
+                >
+                  Bueno
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={v?.resultado === 'Incidencia'}
+                  onClick={() => setModal(e.codigo_inventario)}
+                  className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
+                    v?.resultado === 'Incidencia' ? 'border-red-700 bg-red-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'
+                  }`}
+                >
+                  Incidencia
+                </button>
               </div>
-              {v?.incidencia && (
+              {v?.resultado === 'Incidencia' && v.incidencia && (
                 <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
-                  <p className="font-semibold">Incidencia de {v.incidencia.tipo}</p>
+                  <p className="font-semibold">Incidencia: {v.tipo}</p>
                   <p>Evidencia: {v.incidencia.descripcion}</p>
                   <p>Resolución: {v.incidencia.resolucion}</p>
-                  <button type="button" onClick={() => setModal({ codigo: e.codigo_inventario, estado: v.estado })} className="mt-1 font-medium underline">
+                  <button type="button" onClick={() => setModal(e.codigo_inventario)} className="mt-1 font-medium underline">
                     Editar incidencia
                   </button>
                 </div>
               )}
-              {v?.estado && (
+              {v?.resultado && (
                 <Texto
                   id={`obsdev-${e.codigo_inventario}`}
                   className="mt-3"
@@ -525,7 +563,7 @@ function Inspeccion({ prestamo, alVolver, alTerminar }) {
                   rows={2}
                   maxLength={255}
                   value={v.obs ?? ''}
-                  onChange={(ev) => setRevision((r) => ({ ...r, [e.codigo_inventario]: { ...r[e.codigo_inventario], obs: ev.target.value } }))}
+                  onChange={(ev) => cambiar(e.codigo_inventario, { obs: ev.target.value })}
                 />
               )}
             </li>
@@ -548,12 +586,12 @@ function Inspeccion({ prestamo, alVolver, alTerminar }) {
 
       {modal && (
         <ModalIncidencia
-          codigo={modal.codigo}
-          estado={modal.estado}
-          inicial={revision[modal.codigo]?.estado === modal.estado ? revision[modal.codigo]?.incidencia : null}
+          prestamo={prestamo}
+          equipo={prestamo.equipos.find((x) => x.codigo_inventario === modal)}
+          inicial={revision[modal]?.resultado === 'Incidencia' ? revision[modal] : null}
           alCancelar={() => setModal(null)}
-          alGuardar={(incidencia) => {
-            setRevision((r) => ({ ...r, [modal.codigo]: { ...r[modal.codigo], estado: modal.estado, incidencia } }))
+          alGuardar={(tipo, incidencia) => {
+            cambiar(modal, { resultado: 'Incidencia', tipo, incidencia })
             setModal(null)
           }}
         />
@@ -562,25 +600,41 @@ function Inspeccion({ prestamo, alVolver, alTerminar }) {
   )
 }
 
-/** SRS 8.7: evidencia descriptiva y resolución aplicada (5 a 255 caracteres). */
-function ModalIncidencia({ codigo, estado, inicial, alCancelar, alGuardar }) {
-  const [tipo, setTipo] = useState(inicial?.tipo ?? 'Daño')
-  const [descripcion, setDescripcion] = useState(inicial?.descripcion ?? '')
-  const [resolucion, setResolucion] = useState(inicial?.resolucion ?? '')
-  const valido = descripcion.trim().length >= 5 && resolucion.trim().length >= 5
+/** SRS 8.7: tipo de incidencia, evidencia descriptiva y resolución aplicada (5 a 255 caracteres).
+ *  Queda vinculada al folio, al estudiante y al equipo. */
+function ModalIncidencia({ prestamo, equipo, inicial, alCancelar, alGuardar }) {
+  const [tipo, setTipo] = useState(inicial?.tipo ?? '')
+  const [descripcion, setDescripcion] = useState(inicial?.incidencia?.descripcion ?? '')
+  const [resolucion, setResolucion] = useState(inicial?.incidencia?.resolucion ?? '')
+  const valido = tipo && descripcion.trim().length >= 5 && resolucion.trim().length >= 5
   return (
-    <Modal titulo={`Registro de incidencia · ${codigo}`} alCerrar={alCancelar}>
-      <p className="mb-4 text-sm text-slate-600">
-        Equipo {estado.toLowerCase()}.{' '}
-        {estado === 'Dañado' ? 'Se registra como Daño: el equipo pasará a "En mantenimiento".' : 'Elige Daño (falta un componente) o Pérdida (no se devolvió el equipo; se dará de baja).'}
-      </p>
-      {estado === 'Incompleto' && (
-        <Seleccion id="tipo_incidencia" etiqueta="Tipo de incidencia" value={tipo} onChange={(e) => setTipo(e.target.value)} className="mb-4">
-          <option value="Daño">Daño</option>
-          <option value="Pérdida">Pérdida</option>
-        </Seleccion>
+    <Modal titulo="Registro de incidencia" alCerrar={alCancelar}>
+      <dl className="mb-4 grid grid-cols-[6rem_1fr] gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+        <dt className="text-slate-500">Folio</dt>
+        <dd className="font-medium">{prestamo.folio}</dd>
+        <dt className="text-slate-500">Estudiante</dt>
+        <dd className="font-medium">
+          {prestamo.estudiante} · {prestamo.boleta}
+        </dd>
+        <dt className="text-slate-500">Equipo</dt>
+        <dd className="font-medium">
+          {equipo.nombre} · <span className="font-mono">{equipo.codigo_inventario}</span>
+        </dd>
+      </dl>
+      <Seleccion id="tipo_incidencia" etiqueta="Tipo de incidencia" value={tipo} onChange={(e) => setTipo(e.target.value)} ayuda={TIPOS[tipo]?.efecto}>
+        <option value="">Selecciona...</option>
+        {Object.keys(TIPOS).map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </Seleccion>
+      {tipo === 'Retraso' && prestamo.minutos_de_retraso > 0 && (
+        <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Este préstamo ya tiene el Retraso automático ({prestamo.minutos_de_retraso} min): no se registrará un segundo Retraso.
+        </p>
       )}
-      <Texto id="evidencia" etiqueta="Evidencia descriptiva" value={descripcion} maxLength={255} ayuda="Mínimo 5 caracteres" onChange={(e) => setDescripcion(e.target.value)} />
+      <Texto id="evidencia" className="mt-3" etiqueta="Evidencia descriptiva" value={descripcion} maxLength={255} ayuda="Mínimo 5 caracteres" onChange={(e) => setDescripcion(e.target.value)} />
       <Texto id="resolucion" className="mt-3" etiqueta="Resolución aplicada" value={resolucion} maxLength={255} ayuda="Mínimo 5 caracteres" onChange={(e) => setResolucion(e.target.value)} />
       <div className="mt-5 flex justify-end gap-3">
         <button type="button" className={boton.secundario} onClick={alCancelar}>
@@ -590,7 +644,7 @@ function ModalIncidencia({ codigo, estado, inicial, alCancelar, alGuardar }) {
           type="button"
           className={boton.primario}
           disabled={!valido}
-          onClick={() => alGuardar({ tipo: estado === 'Dañado' ? 'Daño' : tipo, descripcion: descripcion.trim(), resolucion: resolucion.trim() })}
+          onClick={() => alGuardar(tipo, { descripcion: descripcion.trim(), resolucion: resolucion.trim() })}
         >
           Guardar incidencia
         </button>

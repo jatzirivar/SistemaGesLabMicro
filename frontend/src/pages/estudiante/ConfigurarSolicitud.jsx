@@ -46,13 +46,9 @@ export default function ConfigurarSolicitud() {
   const minutosPrestamo = Math.min(reglas.duracion_ordinaria, reglas.duracion_maxima)
   const hoy = hoyISO()
 
-  // Horas de retiro: en punto o y media, dentro del horario y sin pasarse del límite de devolución
-  const horas = []
-  for (let m = aMinutos(reglas.horario_apertura); m <= aMinutos(reglas.horario_cierre); m += 30) {
-    if (m + minutosPrestamo > aMinutos(reglas.hora_limite_devolucion)) break
-    if (fechaRetiro === hoy && m <= minutosAhora()) continue
-    horas.push(deMinutos(m))
-  }
+  // Horas de retiro = inicio de cada clase (07:00, 08:30 ... 20:30); las de hoy que ya pasaron no cuentan
+  const clases = reglas.horarios_retiro?.map((h) => h.slice(0, 5)) ?? clasesDeRespaldo(reglas, minutosPrestamo)
+  const horas = clases.filter((h) => !(fechaRetiro === hoy && aMinutos(h) <= minutosAhora()))
 
   // Revisión rápida en el navegador (el servidor vuelve a revisar todo)
   let errorFecha = null
@@ -65,6 +61,8 @@ export default function ConfigurarSolicitud() {
   }
 
   const horaValida = horas.includes(horaRetiro)
+  const codigosCarrito = carrito.equipos.map((e) => e.codigo_inventario)
+  const dispo = useDisponibilidad(fechaRetiro && !errorFecha ? JSON.stringify([codigosCarrito, fechaRetiro]) : null)
   const grupoLimpio = grupo.trim().toUpperCase()
   const listo = carrito.total > 0 && fechaRetiro && !errorFecha && horaValida && grupoLimpio.length > 0
   const codigos = carrito.equipos.map((e) => e.codigo_inventario)
@@ -158,14 +156,13 @@ export default function ConfigurarSolicitud() {
           <div className="mb-5 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
             <Icono nombre="reloj" className="mt-0.5 h-5 w-5 shrink-0" />
             <div className="text-xs">
-              <p className="text-sm font-semibold">
-                Horario de servicio: {diasServicio(reglas.dias_servicio)}
-              </p>
-              <p>
-                Retiro de {reglas.horario_apertura.slice(0, 5)} a {reglas.horario_cierre.slice(0, 5)} h · devolución el mismo día, a más tardar a las{' '}
+              <p className="text-sm">
+                <span className="font-semibold">Horario de servicio:</span> {diasServicio(reglas.dias_servicio)}, {reglas.horario_apertura.slice(0, 5)} a{' '}
                 {reglas.hora_limite_devolucion.slice(0, 5)} h.
               </p>
-              <p>Cada préstamo dura {duracion(minutosPrestamo)}. La hora de devolución se calcula automáticamente.</p>
+              <p>
+                Cada préstamo dura una clase ({duracion(minutosPrestamo)}) y empieza al inicio de una clase. La devolución es al terminar la clase.
+              </p>
             </div>
           </div>
 
@@ -185,25 +182,15 @@ export default function ConfigurarSolicitud() {
               />
               {errorFecha && <p className="mt-1 text-xs text-red-700">{errorFecha}</p>}
             </div>
-            <div>
-              <label htmlFor="hora_retiro" className="mb-1 block text-sm font-medium text-slate-700">
-                Hora de retiro
-              </label>
-              <select
-                id="hora_retiro"
-                value={horaValida ? horaRetiro : ''}
-                onChange={(e) => setHoraRetiro(e.target.value)}
-                disabled={!fechaRetiro || Boolean(errorFecha)}
-                className={campo}
-              >
-                <option value="">{fechaRetiro ? 'Selecciona la hora' : 'Primero elige la fecha'}</option>
-                {horas.map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <ClasesDeRetiro
+              clases={clases}
+              disponibles={horas}
+              activo={Boolean(fechaRetiro) && !errorFecha}
+              dispo={dispo}
+              elegida={horaValida ? horaRetiro : ''}
+              alElegir={setHoraRetiro}
+              minutos={minutosPrestamo}
+            />
             <div>
               <label htmlFor="fecha_devolucion" className="mb-1 block text-sm font-medium text-slate-700">
                 Fecha de devolución
@@ -339,6 +326,101 @@ export default function ConfigurarSolicitud() {
         </Tarjeta>
       </div>
     </form>
+  )
+}
+
+/** Clases a partir de las reglas (si el servidor no mandó la lista). */
+function clasesDeRespaldo(reglas, minutos) {
+  const lista = []
+  for (let m = aMinutos(reglas.horario_apertura); m <= aMinutos(reglas.horario_cierre); m += minutos) {
+    if (m + minutos > aMinutos(reglas.hora_limite_devolucion)) break
+    lista.push(deMinutos(m))
+  }
+  return lista
+}
+
+/** Qué piezas del carrito están ocupadas en cada clase del día. Se actualiza cada 15 s. */
+function useDisponibilidad(llave) {
+  const [estado, setEstado] = useState({ llave: null, datos: null })
+  useEffect(() => {
+    if (!llave) return
+    let activo = true
+    const [equipos, fecha_retiro] = JSON.parse(llave)
+    const consultar = () =>
+      api('/solicitudes/disponibilidad', { metodo: 'POST', datos: { equipos, fecha_retiro } })
+        .then((datos) => activo && setEstado({ llave, datos }))
+        .catch(() => {})
+    const primera = setTimeout(consultar, 0)
+    const id = setInterval(consultar, 15_000)
+    return () => {
+      activo = false
+      clearTimeout(primera)
+      clearInterval(id)
+    }
+  }, [llave])
+  return estado.llave === llave ? estado.datos : null
+}
+
+const COLOR_CLASE = {
+  libre: 'border-verde-600/50 bg-verde-50 text-verde-800 hover:border-verde-700',
+  algunos: 'border-amber-400 bg-amber-50 text-amber-900 hover:border-amber-500',
+  todos: 'cursor-not-allowed border-red-300 bg-red-50 text-red-700',
+  pasado: 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400',
+  cargando: 'border-slate-200 bg-white text-slate-500',
+}
+
+/** Tarjetas de clase de retiro: verde = todo libre, amarillo = algo ocupado, rojo = todo ocupado. */
+function ClasesDeRetiro({ clases, disponibles, activo, dispo, elegida, alElegir, minutos }) {
+  return (
+    <div className="sm:col-span-2">
+      <p id="clase_retiro" className="mb-1 text-sm font-medium text-slate-700">
+        Clase de retiro <span className="font-normal text-slate-500">(la devolución es al terminar la clase)</span>
+      </p>
+      {!activo ? (
+        <p className="rounded-lg border border-dashed border-slate-300 px-3 py-4 text-center text-sm text-slate-500">Primero elige la fecha de retiro.</p>
+      ) : (
+        <>
+          <div role="radiogroup" aria-labelledby="clase_retiro" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {clases.map((h) => {
+              const info = dispo?.horarios.find((x) => x.hora_retiro.slice(0, 5) === h)
+              const ocupados = info?.ocupados ?? []
+              const pasado = !disponibles.includes(h)
+              const tipo = pasado ? 'pasado' : !info ? 'cargando' : ocupados.length === 0 ? 'libre' : ocupados.length >= info.total ? 'todos' : 'algunos'
+              const texto = { pasado: 'Ya pasó', cargando: 'Revisando...', libre: 'Todo libre', todos: 'Todo ocupado', algunos: `${ocupados.length} ocupado${ocupados.length > 1 ? 's' : ''}` }[tipo]
+              const bloqueada = tipo === 'pasado' || tipo === 'todos'
+              return (
+                <button
+                  key={h}
+                  type="button"
+                  role="radio"
+                  aria-checked={elegida === h}
+                  aria-label={`Clase de las ${h}: ${texto}`}
+                  disabled={bloqueada}
+                  title={ocupados.map((o) => `${o.codigo_inventario}: ${o.motivo}`).join('\n') || undefined}
+                  onClick={() => alElegir(h)}
+                  className={`rounded-xl border-2 px-3 py-2 text-left transition ${COLOR_CLASE[tipo]} ${elegida === h ? 'ring-2 ring-guinda-700 ring-offset-1' : ''}`}
+                >
+                  <span className="block text-base font-bold">{h}</span>
+                  <span className="block text-[11px] opacity-80">hasta {deMinutos(aMinutos(h) + minutos)} h</span>
+                  <span className="mt-0.5 block text-[11px] font-semibold">{texto}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-verde-600" /> Todo libre</span>
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Algunos equipos ocupados</span>
+            <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-400" /> Todo ocupado</span>
+          </p>
+          {elegida && dispo?.horarios.find((x) => x.hora_retiro.slice(0, 5) === elegida)?.ocupados.length > 0 && (
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              En esa clase están ocupados:{' '}
+              {dispo.horarios.find((x) => x.hora_retiro.slice(0, 5) === elegida).ocupados.map((o) => o.codigo_inventario).join(', ')}. Quítalos del carrito o elige otra clase.
+            </p>
+          )}
+        </>
+      )}
+    </div>
   )
 }
 

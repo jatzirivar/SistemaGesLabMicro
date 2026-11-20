@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import logo from '../assets/logo-esime.png'
 import { useAuth } from '../context/AuthContext'
+import CambiarContrasena from './CambiarContrasena'
 import Icono from './Icono'
 
 /** Cierra un menú desplegable al dar clic fuera de él o al presionar Esc. */
@@ -34,6 +35,7 @@ export default function BarraSuperior({ inicio, enlaces = [], menu = [], accione
   const navegar = useNavigate()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [usuarioAbierto, setUsuarioAbierto] = useState(false)
+  const [cambiarContrasena, setCambiarContrasena] = useState(false)
   useCerrarAlSalir(menuAbierto, () => setMenuAbierto(false)) // Esc cierra el menú
   const refUsuario = useCerrarAlSalir(usuarioAbierto, () => setUsuarioAbierto(false))
 
@@ -137,6 +139,16 @@ export default function BarraSuperior({ inicio, enlaces = [], menu = [], accione
                     {usuario?.rol === 'estudiante' ? `Boleta ${usuario?.boleta}` : usuario?.correo}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsuarioAbierto(false)
+                    setCambiarContrasena(true)
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2 hover:bg-slate-50"
+                >
+                  <Icono nombre="llave" className="h-4 w-4" /> Cambiar contraseña
+                </button>
                 <button type="button" onClick={salir} className="flex w-full items-center gap-2 px-4 py-2 hover:bg-slate-50">
                   <Icono nombre="salir" className="h-4 w-4" /> Cerrar sesión
                 </button>
@@ -146,6 +158,7 @@ export default function BarraSuperior({ inicio, enlaces = [], menu = [], accione
           {acciones}
         </div>
       </div>
+      {cambiarContrasena && <CambiarContrasena alCerrar={() => setCambiarContrasena(false)} />}
     </header>
   )
 }

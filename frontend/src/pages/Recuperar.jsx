@@ -7,8 +7,8 @@ import { api } from '../api/cliente'
 import { Campo, CampoContrasena, ReglasContrasena, reglasContrasena } from '../components/Campos'
 import Mensaje from '../components/Mensaje'
 import TarjetaPublica from '../components/TarjetaPublica'
+import { DOMINIOS_TODOS, errorCorreo, listaDominios } from '../utils/correos'
 
-const PATRON_CORREO = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
 
 export default function Recuperar() {
   const navegar = useNavigate()
@@ -19,7 +19,8 @@ export default function Recuperar() {
   const [error, setError] = useState(null)
   const [enviando, setEnviando] = useState(false)
 
-  const correoValido = PATRON_CORREO.test(correo.trim())
+  const errorDeCorreo = errorCorreo(correo, DOMINIOS_TODOS)
+  const correoValido = !errorDeCorreo
   const nuevaValida = reglasContrasena(nueva).every((r) => r.cumple)
   const coinciden = confirmacion !== '' && confirmacion === nueva
 
@@ -76,7 +77,8 @@ export default function Recuperar() {
         <form onSubmit={verificarCorreo} className="space-y-4" noValidate>
           <p className="text-sm text-slate-600">Escribe el correo con el que te registraste.</p>
           <Campo id="correo" etiqueta="Correo electrónico" type="email" autoComplete="email" autoFocus
-            placeholder="usuario@alumno.ipn.mx" value={correo} onChange={(e) => { setCorreo(e.target.value); setError(null) }} />
+            placeholder="usuario@alumno.ipn.mx" ayuda={`Correos ${listaDominios(DOMINIOS_TODOS)} (alumnos y encargados)`}
+            error={correo.trim() && correo.includes('@') && errorDeCorreo !== 'Escribe un correo válido' ? errorDeCorreo : null} value={correo} onChange={(e) => { setCorreo(e.target.value); setError(null) }} />
           {/* 404: "Correo no registrado" (SRS 1.3) */}
           {error && <Mensaje tipo="error" errores={error.errores}>{error.message}</Mensaje>}
           <button type="submit" disabled={!correoValido || enviando} className={boton}>
@@ -89,7 +91,7 @@ export default function Recuperar() {
             Correo verificado: <span className="font-medium text-slate-800">{correo.trim()}</span>
           </p>
           <CampoContrasena id="nueva" etiqueta="Nueva contraseña" autoComplete="new-password" autoFocus
-            placeholder="Mínimo 8 caracteres" value={nueva} onChange={(e) => { setNueva(e.target.value); setError(null) }}
+            value={nueva} onChange={(e) => { setNueva(e.target.value); setError(null) }}
             ayuda={<ReglasContrasena valor={nueva} />} />
           <CampoContrasena id="confirmacion" etiqueta="Confirmar contraseña" autoComplete="new-password"
             placeholder="Repite tu contraseña" value={confirmacion} onChange={(e) => { setConfirmacion(e.target.value); setError(null) }}

@@ -35,6 +35,20 @@ def limite_devolucion(retiro: datetime, prorroga: bool, config: ConfiguracionLab
     return a_local(retiro) + timedelta(minutes=min(minutos, config.duracion_maxima))
 
 
+def horarios_clase(config: ConfiguracionLab) -> list:
+    """Inicios de clase para retirar: desde la apertura, cada duración ordinaria (90 min),
+    mientras la devolución quepa antes de la hora límite. Ej. 07:00, 08:30 ... 20:30."""
+    horarios = []
+    inicio = datetime.combine(datetime.today(), config.horario_apertura)
+    cierre = datetime.combine(datetime.today(), config.horario_cierre)
+    limite = datetime.combine(datetime.today(), config.hora_limite_devolucion)
+    paso = timedelta(minutes=config.duracion_ordinaria)
+    while inicio <= cierre and inicio + paso <= limite:
+        horarios.append(inicio.time())
+        inicio += paso
+    return horarios
+
+
 def limite_de(prestamo: Prestamo, config: ConfiguracionLab) -> datetime:
     return limite_devolucion(prestamo.fecha_hora_prog_retiro, prestamo.prorroga, config)
 

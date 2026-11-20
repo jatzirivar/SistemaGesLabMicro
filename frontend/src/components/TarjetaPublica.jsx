@@ -1,5 +1,6 @@
 // Fondo gris con tarjeta blanca centrada, como en la maqueta del registro (Pantalla 2).
 import EncabezadoPublico from './EncabezadoPublico'
+import PiePagina from './PiePagina'
 
 export default function TarjetaPublica({ antetitulo, titulo, children }) {
   return (
@@ -12,6 +13,7 @@ export default function TarjetaPublica({ antetitulo, titulo, children }) {
           <div className="mt-5">{children}</div>
         </div>
       </main>
+      <PiePagina />
     </div>
   )
 }

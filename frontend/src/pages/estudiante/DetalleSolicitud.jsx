@@ -12,6 +12,7 @@ import Modal from '../../components/Modal'
 import { boton, Tarjeta } from '../../components/Pagina'
 import { useAvisos } from '../../context/AvisosContext'
 import { useCarrito } from '../../context/CarritoContext'
+import useCadaTanto from '../../hooks/useCadaTanto'
 import { duracion, fecha, fechaHora } from '../../utils/formato'
 
 const PENDIENTE = 1
@@ -37,10 +38,11 @@ export default function DetalleSolicitud() {
       .catch((e) => setError(e.message))
   }, [folio])
 
+  const vuelta = useCadaTanto(10_000) // se actualiza sola cada 10 s (ej. cuando el encargado aprueba)
   useEffect(() => {
     const id = setTimeout(cargar, 0)
     return () => clearTimeout(id)
-  }, [cargar])
+  }, [cargar, vuelta])
 
   const alTerminar = (nuevo, texto) => {
     setS(nuevo)

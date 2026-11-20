@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import EncabezadoPublico from '../components/EncabezadoPublico'
 import Icono from '../components/Icono'
 import Mensaje from '../components/Mensaje'
+import PiePagina from '../components/PiePagina'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
@@ -41,14 +42,14 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-slate-100">
       <EncabezadoPublico />
 
-      <main className="flex flex-1 flex-col items-center px-4 py-10">
-        {/* El título va fuera del formulario para caber en una sola línea en pantallas medianas y grandes */}
-        <h1 className="text-center text-3xl font-semibold text-verde-700 sm:whitespace-nowrap sm:text-4xl">Laboratorio de Microprocesadores</h1>
-        <div className="w-full max-w-sm">
-          <h2 className="mt-8 text-lg font-medium text-slate-800">Iniciar Sesión</h2>
+      {/* Fondo gris con recuadro blanco, igual que Crear cuenta y Recuperar contraseña */}
+      <main className="flex flex-1 justify-center px-4 py-8">
+        <div className="h-fit w-full max-w-lg rounded-xl bg-white p-6 shadow-sm sm:p-8">
+          <h1 className="text-center text-2xl font-semibold text-verde-700 sm:whitespace-nowrap sm:text-[1.65rem]">Laboratorio de Microprocesadores</h1>
+          <h2 className="mt-6 text-lg font-medium text-slate-800">Iniciar Sesión</h2>
 
           <form onSubmit={enviar} className="mt-4 space-y-4" noValidate>
             <div>
@@ -113,6 +114,7 @@ export default function Login() {
           </div>
         </div>
       </main>
+      <PiePagina />
     </div>
   )
 }

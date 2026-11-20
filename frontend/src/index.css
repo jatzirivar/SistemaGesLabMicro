@@ -1,20 +1,30 @@
 @import "tailwindcss";
 
-/* Colores del sistema, tomados de las maquetas (guinda institucional y verde) */
+/* SRS 1.1: colores institucionales vino #550000, blanco y verde #005346;
+   fuentes Manrope (títulos) y DM Sans (subtítulos y texto). */
 @theme {
-  --color-guinda-50: #fbf2f3;
-  --color-guinda-100: #f5e1e3;
-  --color-guinda-600: #8c1d28;
-  --color-guinda-700: #741520;
-  --color-guinda-800: #5e0f18;
-  --color-guinda-900: #4a0b12;
+  --color-guinda-50: #fbf0f0;
+  --color-guinda-100: #f4dede;
+  --color-guinda-600: #7a1414;
+  --color-guinda-700: #660808;
+  --color-guinda-800: #550000;
+  --color-guinda-900: #3d0000;
 
-  --color-verde-50: #ecf7f2;
-  --color-verde-600: #127a57;
-  --color-verde-700: #0f6146;
-  --color-verde-800: #0b4b37;
+  --color-verde-50: #e6f3f0;
+  --color-verde-600: #0a6b5a;
+  --color-verde-700: #005346;
+  --color-verde-800: #003f35;
 
-  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "DM Sans", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-titulo: "Manrope", "DM Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+/* Títulos con Manrope (SRS 1.1) */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-titulo);
 }
 
 html,

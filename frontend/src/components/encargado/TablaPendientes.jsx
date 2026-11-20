@@ -1,5 +1,8 @@
 // Solicitudes Pendiente ordenadas por hora de retiro (SRS 8.1 y 8.18) con las acciones
 // rápidas "Aprobar" (verde) y "Rechazar" (rojo, exige motivo del checklist: SRS 8.2).
+// Cada equipo muestra si ya se devolvió y si está agendado en ese horario; si alguno está
+// agendado por otra solicitud aprobada, no se puede aprobar y se sugiere "Equipo no disponible".
+// La tabla se actualiza sola cada 5 segundos.
 import { useState } from 'react'
 import { api } from '../../api/cliente'
 import useApi from '../../hooks/useApi'
@@ -11,7 +14,7 @@ import Modal from '../Modal'
 import { boton } from '../Pagina'
 
 export default function TablaPendientes({ alCambiar }) {
-  const { datos, error, cargando, recargar } = useApi('/encargado/solicitudes/pendientes')
+  const { datos, error, cargando, recargar } = useApi('/encargado/solicitudes/pendientes', undefined, { cada: 5000 })
   const [ocupado, setOcupado] = useState(null)
   const [aviso, setAviso] = useState(null)
   const [rechazar, setRechazar] = useState(null)
@@ -70,9 +73,7 @@ export default function TablaPendientes({ alCambiar }) {
                   </td>
                   <td className="px-3 py-3">
                     <p className="font-medium text-slate-900">{s.estudiante}</p>
-                    <p className="text-xs text-slate-500">
-                      {s.boleta} · Grupo {s.grupo}
-                    </p>
+                    <p className="text-xs text-slate-500">{s.boleta}</p>
                     {s.alertas.map((a) => (
                       <p key={a} className="mt-1 inline-flex rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-700">
                         {a}
@@ -80,11 +81,22 @@ export default function TablaPendientes({ alCambiar }) {
                     ))}
                   </td>
                   <td className="px-3 py-3">
-                    {s.equipos.map((e) => (
-                      <p key={e.codigo_inventario} className="text-xs text-slate-700">
-                        {e.nombre} <span className="text-slate-400">· {e.codigo_inventario}</span>
-                      </p>
-                    ))}
+                    <ul className="space-y-1.5">
+                      {s.revision_equipos.map((e) => (
+                        <li key={e.codigo_inventario} className="text-xs">
+                          <p className="text-slate-700">
+                            {e.nombre} <span className="text-slate-400">· {e.codigo_inventario}</span>
+                          </p>
+                          <p className={`flex items-center gap-1 font-medium ${COLOR_SITUACION[e.situacion]}`}>
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
+                            {e.detalle}
+                          </p>
+                          {e.otras_pendientes.length > 0 && (
+                            <p className="text-[11px] text-slate-500">También lo pide: {e.otras_pendientes.join(', ')}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-600">
                     <p>{fechaHoraCorta(s.fecha_hora_prog_retiro)}</p>
@@ -94,7 +106,8 @@ export default function TablaPendientes({ alCambiar }) {
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
-                        disabled={ocupado === s.folio}
+                        disabled={ocupado === s.folio || !s.puede_aprobar}
+                        title={s.puede_aprobar ? undefined : 'Algún equipo ya está agendado en ese horario: recházala con «Equipo no disponible»'}
                         onClick={() => aprobar(s.folio)}
                         className="rounded-full border border-verde-600/40 bg-verde-50 px-3 py-1 text-xs font-semibold text-verde-700 hover:bg-verde-600/15 disabled:opacity-50"
                       >
@@ -119,6 +132,7 @@ export default function TablaPendientes({ alCambiar }) {
       {rechazar && (
         <ModalRechazo
           solicitud={rechazar}
+          sugerido={rechazar.puede_aprobar ? null : EQUIPO_NO_DISPONIBLE}
           alCerrar={() => setRechazar(null)}
           alTerminar={(texto) => {
             setRechazar(null)
@@ -130,11 +144,14 @@ export default function TablaPendientes({ alCambiar }) {
   )
 }
 
+const EQUIPO_NO_DISPONIBLE = 1
 const OTRO = 5
 
-function ModalRechazo({ solicitud, alCerrar, alTerminar }) {
+const COLOR_SITUACION = { libre: 'text-verde-700', aviso: 'text-amber-700', ocupado: 'text-red-700' }
+
+function ModalRechazo({ solicitud, sugerido, alCerrar, alTerminar }) {
   const { datos: motivos } = useApi('/encargado/solicitudes/motivos-rechazo')
-  const [motivo, setMotivo] = useState(null)
+  const [motivo, setMotivo] = useState(sugerido)
   const [detalle, setDetalle] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState(null)
@@ -146,7 +163,7 @@ function ModalRechazo({ solicitud, alCerrar, alTerminar }) {
     try {
       const r = await api(`/encargado/solicitudes/${encodeURIComponent(solicitud.folio)}/rechazar`, {
         metodo: 'POST',
-        datos: { id_motivo_rechazo: motivo, detalle: detalle.trim() || null },
+        datos: { id_motivo_rechazo: motivo, detalle: motivo === OTRO ? detalle.trim() : null },
       })
       alTerminar(`${r.mensaje}. Se avisó al estudiante.`)
     } catch (e) {
@@ -169,14 +186,22 @@ function ModalRechazo({ solicitud, alCerrar, alTerminar }) {
           </label>
         ))}
       </fieldset>
-      <Texto
-        id="detalle_rechazo"
-        className="mt-4"
-        etiqueta={motivo === OTRO ? 'Especifica el motivo (obligatorio)' : 'Detalle (opcional)'}
-        value={detalle}
-        maxLength={255}
-        onChange={(e) => setDetalle(e.target.value)}
-      />
+      {sugerido && (
+        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+          Algún equipo ya está agendado en ese horario por otra solicitud aprobada.
+        </p>
+      )}
+      {/* Solo "Otro" pide escribir el motivo (SRS 8.2) */}
+      {motivo === OTRO && (
+        <Texto
+          id="detalle_rechazo"
+          className="mt-4"
+          etiqueta="Especifica el motivo"
+          value={detalle}
+          maxLength={255}
+          onChange={(e) => setDetalle(e.target.value)}
+        />
+      )}
       {error && (
         <div className="mt-3">
           <Mensaje tipo="error" errores={error.errores}>

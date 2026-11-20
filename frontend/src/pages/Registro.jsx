@@ -6,10 +6,10 @@ import { api } from '../api/cliente'
 import { Campo, CampoContrasena, ReglasContrasena, reglasContrasena } from '../components/Campos'
 import Mensaje from '../components/Mensaje'
 import TarjetaPublica from '../components/TarjetaPublica'
+import { DOMINIOS_ALUMNO, errorCorreo, listaDominios } from '../utils/correos'
 
 const VACIO = { nombre: '', apellido_pat: '', apellido_mat: '', correo: '', boleta: '', contrasena: '', confirmacion: '' }
 const PATRON_NOMBRE = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' .-]+$/
-const PATRON_CORREO = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
 
 function validar(d, acepta) {
   const e = {}
@@ -18,7 +18,8 @@ function validar(d, acepta) {
   if (!d.apellido_pat.trim()) e.apellido_pat = 'El apellido paterno es obligatorio'
   else if (!PATRON_NOMBRE.test(d.apellido_pat.trim())) e.apellido_pat = 'Solo letras y espacios'
   if (d.apellido_mat.trim() && !PATRON_NOMBRE.test(d.apellido_mat.trim())) e.apellido_mat = 'Solo letras y espacios'
-  if (!PATRON_CORREO.test(d.correo.trim())) e.correo = 'Escribe un correo válido'
+  const malCorreo = errorCorreo(d.correo, DOMINIOS_ALUMNO)
+  if (malCorreo) e.correo = malCorreo
   if (!/^\d{10}$/.test(d.boleta.trim())) e.boleta = 'La boleta debe tener exactamente 10 dígitos'
   if (!reglasContrasena(d.contrasena).every((r) => r.cumple)) e.contrasena = 'La contraseña no cumple los requisitos'
   if (d.confirmacion !== d.contrasena || !d.confirmacion) e.confirmacion = 'Las contraseñas no coinciden'
@@ -115,10 +116,11 @@ export default function Registro() {
             error={errorDe('apellido_mat')} />
         </div>
         <Campo id="correo" etiqueta="Correo electrónico" type="email" placeholder="usuario@alumno.ipn.mx" autoComplete="email"
+          ayuda={`Solo correos ${listaDominios(DOMINIOS_ALUMNO)}`}
           value={datos.correo} onChange={cambiar('correo')} onBlur={tocar('correo')} error={errorDe('correo')} />
         <Campo id="boleta" etiqueta="Boleta" inputMode="numeric" maxLength={10} placeholder="Ingresa tu número de boleta"
           value={datos.boleta} onChange={cambiar('boleta')} onBlur={tocar('boleta')} error={errorDe('boleta')} />
-        <CampoContrasena id="contrasena" etiqueta="Contraseña" placeholder="Mínimo 8 caracteres" autoComplete="new-password"
+        <CampoContrasena id="contrasena" etiqueta="Contraseña" autoComplete="new-password"
           value={datos.contrasena} onChange={cambiar('contrasena')} onBlur={tocar('contrasena')}
           error={erroresServidor.contrasena} ayuda={<ReglasContrasena valor={datos.contrasena} />} />
         <CampoContrasena id="confirmacion" etiqueta="Confirmar contraseña" placeholder="Repite tu contraseña"

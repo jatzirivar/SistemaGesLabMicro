@@ -43,7 +43,7 @@ function Equipos() {
   const [modal, setModal] = useState(null) // { tipo, equipo }
   const [aviso, setAviso] = useState(null)
   const { datos: categorias, recargar: recargarCategorias } = useApi('/categorias')
-  const { datos, ultimo, error, cargando, recargar } = useApi('/inventario/equipos', { buscar: buscar.trim(), id_categoria: idCategoria, id_estado_equipo: estado, pagina })
+  const { datos, ultimo, error, cargando, recargar } = useApi('/inventario/equipos', { buscar: buscar.trim(), id_categoria: idCategoria, id_estado_equipo: estado, pagina }, { cada: 10000 })
   const lista = datos ?? ultimo
 
   const filtrar = (cambio) => {

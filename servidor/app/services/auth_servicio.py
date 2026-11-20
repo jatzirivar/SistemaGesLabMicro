@@ -20,7 +20,7 @@ from app.core.constantes import (
 )
 from app.core.dependencias import UsuarioSesion
 from app.core.seguridad import crear_token, generar_hash, simular_verificacion, verificar_contrasena
-from app.core.validaciones import validar_contrasena
+from app.core.validaciones import DOMINIOS_TODOS, dominio_permitido, validar_contrasena
 from app.models.usuarios import Encargado, Estudiante
 from app.schemas.auth import RegistroEstudiante
 
@@ -193,6 +193,9 @@ def cambiar_contrasena(db: Session, usuario: UsuarioSesion, actual: str, nueva: 
 # encargado crea su primera contraseña (SRS 8.13).
 
 def _buscar_por_correo(db: Session, correo: str) -> tuple[str, Estudiante | Encargado]:
+    # SRS 1.3: si el dominio no es @gmail.com, @ipn.mx o @alumno.ipn.mx -> "Correo no registrado"
+    if not dominio_permitido(correo, DOMINIOS_TODOS):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, MENSAJE_CORREO_NO_REGISTRADO)
     estudiante = db.scalar(select(Estudiante).where(func.lower(Estudiante.correo) == correo))
     if estudiante:
         return Rol.ESTUDIANTE, estudiante

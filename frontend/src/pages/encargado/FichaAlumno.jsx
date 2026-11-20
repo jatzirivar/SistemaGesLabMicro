@@ -20,7 +20,7 @@ const DURACION = { Retraso: '7 días naturales', Daño: '15 días naturales', P�
 export default function FichaAlumno() {
   const { pathname } = useLocation()
   const id = pathname.split('/').filter(Boolean).at(-1)
-  const { datos, error, recargar } = useApi(`/encargado/estudiantes/${id}`)
+  const { datos, error, recargar } = useApi(`/encargado/estudiantes/${id}`, undefined, { cada: 10000 })
   const [modal, setModal] = useState(null) // 'suspender' | 'sancion' | { retirar } | { folio }
   const [aviso, setAviso] = useState(null)
 

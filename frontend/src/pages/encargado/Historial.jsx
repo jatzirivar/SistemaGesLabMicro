@@ -23,7 +23,7 @@ export default function Historial() {
   const [descargando, setDescargando] = useState(false)
   const [errorPdf, setErrorPdf] = useState(null)
   const limpios = Object.fromEntries(Object.entries(filtros).map(([k, v]) => [k, v.trim()]))
-  const { datos, ultimo, error, cargando } = useApi('/encargado/historial', { ...limpios, pagina })
+  const { datos, ultimo, error, cargando } = useApi('/encargado/historial', { ...limpios, pagina }, { cada: 10000 })
   const lista = datos ?? ultimo
   const cambiar = (c) => (e) => setBorrador((b) => ({ ...b, [c]: e.target.value }))
   const rangoInvalido = borrador.desde && borrador.hasta && borrador.desde > borrador.hasta

@@ -146,6 +146,37 @@ class ReglasSolicitud(BaseModel):
     limite_por_modelo: int
     tolerancia_retiro: int
     dias_inhabiles: list[DiaInhabilAviso]   # próximos días sin servicio
+    horarios_retiro: list[time]             # inicios de clase: 07:00, 08:30 ... 20:30
+
+
+class ConsultaDisponibilidad(BaseModel):
+    equipos: list[str]
+    fecha_retiro: date
+
+    @field_validator("equipos")
+    @classmethod
+    def _equipos(cls, v: list[str]) -> list[str]:
+        return list(dict.fromkeys(c.strip().upper() for c in v if c and c.strip()))[:20]
+
+
+class EquipoOcupado(BaseModel):
+    codigo_inventario: str
+    motivo: str
+
+
+class HorarioClase(BaseModel):
+    hora_retiro: time
+    hora_devolucion: time
+    pasado: bool                       # ya pasó la hora (hoy)
+    ocupados: list[EquipoOcupado]      # 0 = verde, algunos = amarillo, todos = rojo
+    total: int
+
+
+class DisponibilidadDia(BaseModel):
+    fecha: date
+    dia_valido: bool
+    motivo_dia: str | None
+    horarios: list[HorarioClase]
 
 
 class SolicitudCreada(BaseModel):
@@ -193,6 +224,15 @@ class Comprobante(BaseModel):
     codigo_pin: str | None
 
 
+class EquipoAlDictaminar(BaseModel):
+    """Situación de cada pieza al aprobar o rechazar: ¿ya se devolvió? ¿está agendada en ese horario?"""
+    codigo_inventario: str
+    nombre: str
+    situacion: str              # "libre" | "aviso" | "ocupado"
+    detalle: str                # texto para el encargado
+    otras_pendientes: list[str] # otras solicitudes Pendiente que piden la misma pieza en ese horario
+
+
 class SolicitudPendiente(BaseModel):
     """Fila de la tabla del encargado (SRS 8.1)."""
     folio: str
@@ -200,6 +240,8 @@ class SolicitudPendiente(BaseModel):
     boleta: str
     grupo: str
     equipos: list[EquipoEnPrestamo]
+    revision_equipos: list[EquipoAlDictaminar]
+    puede_aprobar: bool         # falso si alguna pieza está agendada (Aprobada/Entregada) o dada de baja
     fecha_hora_solicitud: datetime
     fecha_hora_prog_retiro: datetime
     fecha_hora_limite_devolucion: datetime

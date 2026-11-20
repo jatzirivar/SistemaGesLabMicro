@@ -1,6 +1,7 @@
 // Pantalla 4: Catálogo de equipos (SRS 4, 4.1 y 5).
 // Búsqueda por nombre o código, filtro por categoría y por disponibilidad.
-// Solo los equipos "Disponible" se pueden agregar al carrito.
+// Solo "En mantenimiento" impide agregarlo. Un equipo prestado ahora se puede pedir para otro
+// horario: se avisa con "Ocupado ahora, disponible en otros horarios".
 import { useEffect, useState } from 'react'
 import { api } from '../../api/cliente'
 import Cargando from '../../components/Cargando'
@@ -11,6 +12,7 @@ import Mensaje from '../../components/Mensaje'
 import Modal from '../../components/Modal'
 import { boton, Encabezado } from '../../components/Pagina'
 import { useCarrito } from '../../context/CarritoContext'
+import useCadaTanto from '../../hooks/useCadaTanto'
 
 const POR_PAGINA = 12
 
@@ -34,11 +36,12 @@ export default function Catalogo() {
   const [resultado, setResultado] = useState(null)
   const [error, setError] = useState(null)
   const [detalle, setDetalle] = useState(null)
+  const vuelta = useCadaTanto(15_000) // disponibilidad al día cada 15 s
   const buscar = useRetrasado(texto.trim())
 
   useEffect(() => {
     api('/categorias').then(setCategorias).catch(() => setCategorias([]))
-  }, [])
+  }, [vuelta])
 
   useEffect(() => {
     let activo = true
@@ -52,7 +55,7 @@ export default function Catalogo() {
     return () => {
       activo = false
     }
-  }, [buscar, idCategoria, disponibilidad, pagina])
+  }, [buscar, idCategoria, disponibilidad, pagina, vuelta])
 
   // Al cambiar un filtro se regresa a la página 1
   const filtrar = (cambio) => {
@@ -107,7 +110,7 @@ export default function Catalogo() {
           >
             <option value="">Todos</option>
             <option value="Disponible">Disponible</option>
-            <option value="No disponible">No disponible</option>
+            <option value="En mantenimiento">En mantenimiento</option>
           </select>
         </label>
       </div>
@@ -190,7 +193,7 @@ function BotonCarrito({ equipo, carrito }) {
   if (!equipo.se_puede_agregar) {
     return (
       <button type="button" disabled className="w-full cursor-not-allowed rounded-lg bg-slate-100 px-3 py-2.5 text-sm font-medium text-slate-400">
-        No se puede agregar
+        En mantenimiento
       </button>
     )
   }
@@ -234,6 +237,14 @@ function BotonCarrito({ equipo, carrito }) {
   )
 }
 
+function OcupadoAhora() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-inset ring-amber-500/30">
+      <Icono nombre="reloj" className="h-3 w-3" /> Ocupado ahora, disponible en otros horarios
+    </span>
+  )
+}
+
 function TarjetaEquipo({ equipo, carrito, alVer }) {
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -251,9 +262,12 @@ function TarjetaEquipo({ equipo, carrito, alVer }) {
         <button type="button" onClick={alVer} className="mt-2 text-left text-base font-semibold text-slate-900 hover:text-guinda-800">
           {equipo.nombre}
         </button>
-        <button type="button" onClick={alVer} className="mt-0.5 self-start text-xs text-slate-500 hover:underline">
-          Ver detalle
-        </button>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <button type="button" onClick={alVer} className="text-xs text-slate-500 hover:underline">
+            Ver detalle
+          </button>
+          {equipo.ocupado_ahora && <OcupadoAhora />}
+        </div>
         <div className="mt-auto pt-4">
           <BotonCarrito equipo={equipo} carrito={carrito} />
         </div>
@@ -284,7 +298,10 @@ function DetalleEquipo({ codigo, carrito, alCerrar }) {
           <div className="grid gap-4 sm:grid-cols-[14rem_1fr]">
             <FotoEquipo url={equipo.foto_url} nombre={equipo.nombre} className="h-44 w-full rounded-xl" />
             <div className="space-y-2">
-              <EtiquetaEstado estado={equipo.disponibilidad} />
+              <div className="flex flex-wrap gap-2">
+                <EtiquetaEstado estado={equipo.disponibilidad} />
+                {equipo.ocupado_ahora && <OcupadoAhora />}
+              </div>
               <p>
                 <span className="text-slate-500">Código de inventario:</span> <strong>{equipo.codigo_inventario}</strong>
               </p>

@@ -12,6 +12,7 @@ import { boton, Tarjeta } from '../../components/Pagina'
 import SolicitudesPorEstado from '../../components/SolicitudesPorEstado'
 import { useAuth } from '../../context/AuthContext'
 import { useAvisos } from '../../context/AvisosContext'
+import useCadaTanto from '../../hooks/useCadaTanto'
 import { dosDigitos, fecha, fechaHoraCorta, hoyLargo } from '../../utils/formato'
 
 const ENTREGADA = 3
@@ -23,6 +24,7 @@ export default function PanelEstudiante() {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(null)
   const [pestana, setPestana] = useState('activos')
+  const vuelta = useCadaTanto(10_000) // se actualiza solo cada 10 s
 
   useEffect(() => {
     let activo = true
@@ -32,7 +34,7 @@ export default function PanelEstudiante() {
     return () => {
       activo = false
     }
-  }, [])
+  }, [vuelta])
 
   const { panel, solicitudes, historial } = datos ?? {}
   const fuera = panel?.prestamos_activos

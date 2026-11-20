@@ -34,7 +34,9 @@ export default function Carrito() {
     setBuscando(grupo.nombre)
     try {
       const r = await api('/catalogo', { parametros: { buscar: grupo.nombre, disponibilidad: 'Disponible', por_pagina: 100 } })
-      const libre = r.elementos.find((e) => e.nombre === grupo.nombre && e.se_puede_agregar && !carrito.tiene(e.codigo_inventario))
+      const candidatas = r.elementos.filter((e) => e.nombre === grupo.nombre && e.se_puede_agregar && !carrito.tiene(e.codigo_inventario))
+      // Primero una pieza que no esté prestada ahora; si no hay, cualquiera (se puede pedir para otro horario)
+      const libre = candidatas.find((e) => !e.ocupado_ahora) ?? candidatas[0]
       if (libre) carrito.agregar(libre)
       else setAviso(`No hay otra pieza disponible de «${grupo.nombre}» en este momento.`)
     } catch (e) {

@@ -21,7 +21,7 @@ router = APIRouter(
 def listar(
     buscar: str | None = Query(None, description="Nombre o código, coincidencia parcial"),
     id_categoria: int | None = Query(None),
-    disponibilidad: Literal["Disponible", "No disponible"] | None = Query(None),
+    disponibilidad: Literal["Disponible", "En mantenimiento"] | None = Query(None),
     pagina: int = Query(1, ge=1),
     por_pagina: int = Query(20, ge=1, le=100),
     db: Session = Depends(obtener_sesion),

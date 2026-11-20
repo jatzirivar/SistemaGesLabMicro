@@ -2,7 +2,7 @@
 import secrets
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,64 @@ from app.core.tiempo import a_local, ahora
 from app.models.prestamos import Prestamo
 from app.schemas.prestamos import Rechazo
 from app.services import prestamos_comun as comun
+
+
+_CHOQUES = text("""
+    SELECT p.folio, p.id_estado_prestamo AS estado,
+           fn_limite_devolucion(p.fecha_hora_prog_retiro, p.prorroga) AS limite
+      FROM detalle_prestamo d
+      JOIN prestamo p ON p.folio = d.folio_prestamo
+     WHERE d.codigo_inventario = :codigo
+       AND p.folio <> :folio
+       AND p.fecha_hora_real_devolucion IS NULL
+       AND (p.id_estado_prestamo = 4
+            OR (p.id_estado_prestamo IN (1, 2, 3)
+                AND tstzrange(p.fecha_hora_prog_retiro,
+                              fn_limite_devolucion(p.fecha_hora_prog_retiro, p.prorroga))
+                    && tstzrange(:inicio, :fin)))
+     ORDER BY p.fecha_hora_prog_retiro
+""")
+
+_FUERA = text("""
+    SELECT p.folio, p.id_estado_prestamo AS estado,
+           fn_limite_devolucion(p.fecha_hora_prog_retiro, p.prorroga) AS limite
+      FROM detalle_prestamo d
+      JOIN prestamo p ON p.folio = d.folio_prestamo
+     WHERE d.codigo_inventario = :codigo
+       AND p.id_estado_prestamo IN (3, 4)
+       AND p.fecha_hora_real_devolucion IS NULL
+""")
+
+
+def revisar_equipos(db: Session, prestamo: Prestamo, config) -> list[dict]:
+    """Para cada pieza: si ya se devolvió del préstamo anterior y si está agendada en ese horario."""
+    inicio = a_local(prestamo.fecha_hora_prog_retiro)
+    fin = comun.limite_de(prestamo, config)
+    revision = []
+    for d in prestamo.detalles:
+        codigo = d.codigo_inventario
+        choques = db.execute(_CHOQUES, {"codigo": codigo, "folio": prestamo.folio, "inicio": inicio, "fin": fin}).all()
+        agendado = [c for c in choques if c.estado in (EstadoPrestamo.APROBADA, EstadoPrestamo.ENTREGADA, EstadoPrestamo.VENCIDA)]
+        pendientes = [c.folio for c in choques if c.estado == EstadoPrestamo.PENDIENTE]
+        fuera = db.execute(_FUERA, {"codigo": codigo}).first()
+
+        if d.equipo.id_estado_equipo == EstadoEquipo.DADO_DE_BAJA:
+            situacion, detalle = "ocupado", "Dado de baja"
+        elif agendado:
+            c = agendado[0]
+            if c.estado == EstadoPrestamo.VENCIDA:
+                situacion, detalle = "ocupado", f"No se ha devuelto: {c.folio} está vencido"
+            else:
+                situacion, detalle = "ocupado", f"Agendado en ese horario: {c.folio} ({EstadoPrestamo.NOMBRES[c.estado]})"
+        elif d.equipo.id_estado_equipo == EstadoEquipo.EN_MANTENIMIENTO:
+            situacion, detalle = "aviso", "En mantenimiento"
+        elif fuera:
+            situacion, detalle = "aviso", f"Aún no se devuelve ({fuera.folio}, límite {a_local(fuera.limite):%H:%M} h)"
+        else:
+            situacion, detalle = "libre", "Devuelto y libre en ese horario"
+        revision.append({"codigo_inventario": codigo, "nombre": d.equipo.nombre,
+                         "situacion": situacion, "detalle": detalle, "otras_pendientes": pendientes})
+    return revision
 
 
 def solicitudes_pendientes(db: Session) -> list[dict]:
@@ -40,7 +98,10 @@ def solicitudes_pendientes(db: Session) -> list[dict]:
             elif d.equipo.id_estado_equipo == EstadoEquipo.DADO_DE_BAJA:
                 alertas.append(f"{d.codigo_inventario} fue dado de baja")
 
+        revision = revisar_equipos(db, p, config)
         filas.append({
+            "revision_equipos": revision,
+            "puede_aprobar": all(r["situacion"] != "ocupado" for r in revision),
             "folio": p.folio,
             "estudiante": p.estudiante.nombre_completo,
             "boleta": p.estudiante.boleta,
@@ -81,10 +142,10 @@ def aprobar(db: Session, encargado: UsuarioSesion, folio: str) -> str:
 
     if ahora() > comun.fin_de_tolerancia(prestamo, config):
         raise ErrorDeNegocio("Ya pasó la hora de retiro y su tolerancia; la solicitud se cancelará automáticamente")
-    dados_de_baja = [d.codigo_inventario for d in prestamo.detalles
-                     if d.equipo.id_estado_equipo == EstadoEquipo.DADO_DE_BAJA]
-    if dados_de_baja:
-        raise ErrorDeNegocio(f"No se puede aprobar: {', '.join(dados_de_baja)} fue dado de baja. Recházala.")
+    ocupados = [f"{r['codigo_inventario']}: {r['detalle']}" for r in revisar_equipos(db, prestamo, config)
+                if r["situacion"] == "ocupado"]
+    if ocupados:
+        raise ErrorDeNegocio("No se puede aprobar; recházala con «Equipo no disponible». " + "; ".join(ocupados))
 
     prestamo.codigo_pin = _pin_libre(db)
     prestamo.intentos_pin = 0

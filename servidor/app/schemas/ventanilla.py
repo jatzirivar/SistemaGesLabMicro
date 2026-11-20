@@ -74,7 +74,7 @@ class VerificarCodigo(BaseModel):
 
 class IncidenciaCaptura(BaseModel):
     """Modal de incidencia (SRS 8.7): evidencia y resolución de 5 a 255 caracteres."""
-    tipo: Literal["Daño", "Pérdida"]
+    tipo: Literal["Daño", "Pérdida", "Retraso"]
     descripcion: str        # "Evidencia descriptiva"
     resolucion: str         # "Resolución aplicada"
 
@@ -93,7 +93,7 @@ class InspeccionDevolucion(BaseModel):
     codigo_inventario: str
     estado: Literal["Bueno", "Dañado", "Incompleto"]
     observaciones: str | None = None
-    incidencia: IncidenciaCaptura | None = None   # obligatoria si no está "Bueno"
+    incidencia: IncidenciaCaptura | None = None   # obligatoria si no está "Bueno"; en "Bueno" solo Retraso
 
     @field_validator("codigo_inventario")
     @classmethod
@@ -109,8 +109,11 @@ class InspeccionDevolucion(BaseModel):
     def _incidencia(self):
         if self.estado != "Bueno" and self.incidencia is None:
             raise ValueError(f"{self.codigo_inventario}: registra la incidencia del equipo {self.estado.lower()}")
-        if self.estado == "Bueno" and self.incidencia is not None:
-            raise ValueError(f"{self.codigo_inventario}: un equipo en buen estado no lleva incidencia")
+        # Retraso (lo elige el encargado): el equipo vuelve en buen estado, pero se devolvió tarde
+        if self.estado == "Bueno" and self.incidencia is not None and self.incidencia.tipo != "Retraso":
+            raise ValueError(f"{self.codigo_inventario}: un equipo en buen estado solo puede llevar incidencia de Retraso")
+        if self.estado != "Bueno" and self.incidencia.tipo == "Retraso":
+            raise ValueError(f"{self.codigo_inventario}: un equipo dañado o incompleto se registra como Daño o Pérdida")
         # Dañado -> siempre Daño. Incompleto -> el encargado elige Daño o Pérdida (equipo no devuelto)
         if self.estado == "Dañado" and self.incidencia.tipo != "Daño":
             raise ValueError(f"{self.codigo_inventario}: un equipo dañado se registra como incidencia de Daño; "

@@ -50,7 +50,7 @@ async def ciclo_de_vida(_: FastAPI):
 app = FastAPI(
     title="API - Préstamos del Laboratorio de Microprocesadores",
     description="ESIME CU · Equipo 2",
-    version="0.7.0",
+    version="0.8.0",
     lifespan=ciclo_de_vida,
 )
 

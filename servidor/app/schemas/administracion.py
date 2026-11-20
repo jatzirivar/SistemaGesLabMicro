@@ -6,9 +6,11 @@ from pydantic import BaseModel, field_validator, model_validator
 
 from app.core.constantes import LONGITUD_MINIMA_CONTRASENA_ENCARGADO
 from app.core.validaciones import (
+    DOMINIOS_ALUMNO,
+    DOMINIOS_TODOS,
     validar_boleta,
     validar_contrasena,
-    validar_formato_correo,
+    validar_correo_dominio,
     validar_nombre,
 )
 from app.schemas.prestamos import EquipoEnPrestamo, ResumenPrestamo
@@ -52,7 +54,7 @@ class RegistroAlumnoManual(_Nombres):
     @field_validator("correo")
     @classmethod
     def _correo(cls, v: str) -> str:
-        return validar_formato_correo(v)
+        return validar_correo_dominio(v, DOMINIOS_ALUMNO)
 
 
 class CambioSuspension(BaseModel):
@@ -107,7 +109,7 @@ class RegistroEncargado(_Nombres):
     @field_validator("correo")
     @classmethod
     def _correo(cls, v: str) -> str:
-        return validar_formato_correo(v)
+        return validar_correo_dominio(v, DOMINIOS_TODOS)
 
     @field_validator("contrasena")
     @classmethod

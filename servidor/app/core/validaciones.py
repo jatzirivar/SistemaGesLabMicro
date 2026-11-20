@@ -39,6 +39,24 @@ def validar_formato_correo(valor: str) -> str:
     return valor
 
 
+# Dominios de correo permitidos
+DOMINIOS_ALUMNO = ("gmail.com", "alumno.ipn.mx")                 # crear cuenta y registro manual
+DOMINIOS_TODOS = ("gmail.com", "ipn.mx", "alumno.ipn.mx")        # encargados y recuperar contraseña
+
+
+def dominio_permitido(correo: str, dominios: tuple[str, ...]) -> bool:
+    return correo.rsplit("@", 1)[-1] in dominios
+
+
+def validar_correo_dominio(valor: str, dominios: tuple[str, ...]) -> str:
+    """Formato válido y dominio dentro de la lista (ej. @gmail.com o @alumno.ipn.mx)."""
+    valor = validar_formato_correo(valor)
+    if not dominio_permitido(valor, dominios):
+        lista = ", ".join(f"@{d}" for d in dominios[:-1]) + f" o @{dominios[-1]}"
+        raise ValueError(f"El correo debe terminar en {lista}")
+    return valor
+
+
 def validar_contrasena(valor: str, longitud_minima: int) -> str:
     """Reglas del SRS 2: mínimo de caracteres, mayúscula, minúscula, número y sin espacios."""
     if len(valor) < longitud_minima:

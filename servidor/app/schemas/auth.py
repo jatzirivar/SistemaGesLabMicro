@@ -3,10 +3,11 @@ from pydantic import BaseModel, field_validator, model_validator
 
 from app.core.constantes import LONGITUD_MINIMA_CONTRASENA_ESTUDIANTE
 from app.core.validaciones import (
+    DOMINIOS_ALUMNO,
     normalizar_correo,
     validar_boleta,
     validar_contrasena,
-    validar_formato_correo,
+    validar_correo_dominio,
     validar_nombre,
 )
 
@@ -47,7 +48,7 @@ class RegistroEstudiante(BaseModel):
     @field_validator("correo")
     @classmethod
     def _correo(cls, v: str) -> str:
-        return validar_formato_correo(v)
+        return validar_correo_dominio(v, DOMINIOS_ALUMNO)
 
     @field_validator("contrasena")
     @classmethod

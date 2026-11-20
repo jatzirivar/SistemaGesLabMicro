@@ -378,6 +378,16 @@ def registrar_devolucion(db: Session, encargado: UsuarioSesion, folio: str, dato
         ids_incidencias.append(inc.id_incidencia)
         ids_sanciones.append(id_s)
 
+    # Retraso marcado por el encargado (aunque el sistema calcule que llegó a tiempo).
+    # Siempre es UN retraso por préstamo: si ya se aplicó el automático, no se repite.
+    manual = next((e for e in datos.equipos if e.incidencia and e.incidencia.tipo == "Retraso"), None)
+    if manual and retraso <= 0:
+        inc, id_s = _registrar_incidencia(db, prestamo, encargado, TipoIncidencia.RETRASO,
+                                          manual.codigo_inventario, manual.incidencia.descripcion,
+                                          manual.incidencia.resolucion)
+        ids_incidencias.append(inc.id_incidencia)
+        ids_sanciones.append(id_s)
+
     todos_bien = True
     for d in prestamo.detalles:
         inspeccion = recibidos[d.codigo_inventario]

@@ -21,7 +21,7 @@ export function AvisosProvider({ children }) {
   useEffect(() => {
     // La primera carga y la del intervalo llegan después, fuera del render
     const primera = setTimeout(recargar, 0)
-    const id = setInterval(recargar, 60_000)
+    const id = setInterval(recargar, 10_000)
     return () => {
       clearTimeout(primera)
       clearInterval(id)

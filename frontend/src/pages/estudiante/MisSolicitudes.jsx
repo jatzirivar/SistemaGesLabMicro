@@ -9,12 +9,14 @@ import IncidenciasSanciones from '../../components/IncidenciasSanciones'
 import Mensaje from '../../components/Mensaje'
 import { boton, Encabezado, Tarjeta } from '../../components/Pagina'
 import SolicitudesPorEstado from '../../components/SolicitudesPorEstado'
+import useCadaTanto from '../../hooks/useCadaTanto'
 
 export default function MisSolicitudes() {
   const { state } = useLocation()
   const [pestana, setPestana] = useState(state?.pestana ?? 'activos')
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(null)
+  const vuelta = useCadaTanto(10_000) // se actualiza solo cada 10 s
 
   useEffect(() => {
     let activo = true
@@ -24,7 +26,7 @@ export default function MisSolicitudes() {
     return () => {
       activo = false
     }
-  }, [])
+  }, [vuelta])
 
   return (
     <div>

@@ -142,7 +142,8 @@ class EquipoCatalogo(BaseModel):
     nombre: str
     id_categoria: int
     categoria: str
-    disponibilidad: str        # "Disponible" | "No disponible" | "En mantenimiento"
+    disponibilidad: str        # "Disponible" | "En mantenimiento"
+    ocupado_ahora: bool        # un préstamo aprobado lo tiene ahora: "Ocupado ahora, disponible en otros horarios"
     se_puede_agregar: bool     # habilita o deshabilita el botón "Agregar"
     foto_url: str | None
 

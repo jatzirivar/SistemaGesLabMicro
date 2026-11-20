@@ -21,7 +21,7 @@ const COLORES = {
 export default function PanelEncargado() {
   const { usuario } = useAuth()
   const navegar = useNavigate()
-  const { datos: panel, error, recargar } = useApi('/encargado/panel')
+  const { datos: panel, error, recargar } = useApi('/encargado/panel', undefined, { cada: 5000 })
 
   return (
     <div>

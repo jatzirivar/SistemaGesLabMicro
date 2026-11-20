@@ -12,6 +12,7 @@ import Mensaje from '../../components/Mensaje'
 import Modal from '../../components/Modal'
 import { boton, Encabezado, Tarjeta } from '../../components/Pagina'
 import useApi from '../../hooks/useApi'
+import { DOMINIOS_ALUMNO, DOMINIOS_TODOS, errorCorreo, listaDominios } from '../../utils/correos'
 
 const MINIMO_ENCARGADO = 10
 
@@ -46,7 +47,7 @@ function Alumnos() {
   const [pagina, setPagina] = useState(1)
   const [registrar, setRegistrar] = useState(false)
   const [aviso, setAviso] = useState(null)
-  const { datos, ultimo, error, cargando, recargar } = useApi('/encargado/estudiantes', { buscar: buscar.trim(), pagina })
+  const { datos, ultimo, error, cargando, recargar } = useApi('/encargado/estudiantes', { buscar: buscar.trim(), pagina }, { cada: 10000 })
   const lista = datos ?? ultimo
 
   return (
@@ -138,7 +139,8 @@ function RegistroAlumno({ alCerrar, alTerminar }) {
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState(null)
   const cambiar = (c) => (e) => setD((x) => ({ ...x, [c]: c === 'boleta' ? e.target.value.replace(/\D/g, '').slice(0, 10) : e.target.value }))
-  const completo = d.nombre.trim() && d.apellido_pat.trim() && d.boleta.length === 10 && d.correo.includes('@')
+  const malCorreo = d.correo.trim() ? errorCorreo(d.correo, DOMINIOS_ALUMNO) : null
+  const completo = d.nombre.trim() && d.apellido_pat.trim() && d.boleta.length === 10 && d.correo.trim() && !malCorreo
 
   const guardar = async (e) => {
     e.preventDefault()
@@ -162,7 +164,8 @@ function RegistroAlumno({ alCerrar, alTerminar }) {
           <Entrada id="al_am" etiqueta="Apellido materno (opcional)" value={d.apellido_mat} onChange={cambiar('apellido_mat')} error={errorDe(error, 'apellido_mat')} />
         </div>
         <Entrada id="al_boleta" etiqueta="Boleta" inputMode="numeric" value={d.boleta} onChange={cambiar('boleta')} ayuda="10 dígitos" error={errorDe(error, 'boleta')} />
-        <Entrada id="al_correo" type="email" etiqueta="Correo" value={d.correo} onChange={cambiar('correo')} error={errorDe(error, 'correo')} />
+        <Entrada id="al_correo" type="email" etiqueta="Correo" value={d.correo} onChange={cambiar('correo')}
+          ayuda={`Solo correos ${listaDominios(DOMINIOS_ALUMNO)}`} error={malCorreo ?? errorDe(error, 'correo')} />
         <p className="text-xs text-slate-500">El alumno creará su contraseña con «¿Olvidaste tu contraseña?» en la pantalla de inicio de sesión.</p>
         {error && (
           <Mensaje tipo="error" errores={error.errores}>
@@ -241,7 +244,8 @@ function AltaEncargado({ alCerrar, alTerminar }) {
   const [error, setError] = useState(null)
   const cambiar = (c) => (e) => setD((x) => ({ ...x, [c]: e.target.value }))
   const contrasenaOk = reglasContrasena(d.contrasena, MINIMO_ENCARGADO).every((r) => r.cumple)
-  const completo = d.nombre.trim() && d.apellido_pat.trim() && d.correo.includes('@') && contrasenaOk && confirmacion === d.contrasena
+  const malCorreo = d.correo.trim() ? errorCorreo(d.correo, DOMINIOS_TODOS) : null
+  const completo = d.nombre.trim() && d.apellido_pat.trim() && d.correo.trim() && !malCorreo && contrasenaOk && confirmacion === d.contrasena
 
   const guardar = async (e) => {
     e.preventDefault()
@@ -264,7 +268,8 @@ function AltaEncargado({ alCerrar, alTerminar }) {
           <Entrada id="en_ap" etiqueta="Apellido paterno" value={d.apellido_pat} onChange={cambiar('apellido_pat')} />
           <Entrada id="en_am" etiqueta="Apellido materno (opcional)" value={d.apellido_mat} onChange={cambiar('apellido_mat')} />
         </div>
-        <Entrada id="en_correo" type="email" etiqueta="Correo" value={d.correo} onChange={cambiar('correo')} error={errorDe(error, 'correo')} />
+        <Entrada id="en_correo" type="email" etiqueta="Correo" value={d.correo} onChange={cambiar('correo')}
+          ayuda={`Solo correos ${listaDominios(DOMINIOS_TODOS)}`} error={malCorreo ?? errorDe(error, 'correo')} />
         <CampoContrasena id="en_contrasena" etiqueta="Contraseña" value={d.contrasena} onChange={cambiar('contrasena')} ayuda={<ReglasContrasena valor={d.contrasena} minimo={MINIMO_ENCARGADO} />} />
         <CampoContrasena
           id="en_confirmacion"

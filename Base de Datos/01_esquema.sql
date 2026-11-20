@@ -417,7 +417,7 @@ RETURNS TIMESTAMPTZ AS $$
 $$ LANGUAGE sql STABLE;
 
 -- ¿El equipo está ocupado en ese horario? (pregunta 2: disponibilidad por horario)
--- Ocupan horario los préstamos Pendiente, Aprobada y Entregada.
+-- Ocupan horario los préstamos Aprobada y Entregada (una Pendiente no aparta: script 09).
 -- Un préstamo Vencida ocupa el equipo sin importar la hora (no se ha devuelto).
 -- Si la devolución ya se registró, el equipo ya no está con el alumno: no ocupa
 -- (su disponibilidad depende entonces de su estado: mantenimiento, baja, etc.).
@@ -436,7 +436,7 @@ CREATE FUNCTION fn_equipo_ocupado(
            AND p.fecha_hora_real_devolucion IS NULL   -- ya devuelto (aunque tenga pendientes): no ocupa
            AND (
                  p.id_estado_prestamo = 4
-              OR (p.id_estado_prestamo IN (1, 2, 3)
+              OR (p.id_estado_prestamo IN (2, 3)        -- Pendiente (1) no aparta (script 09)
                   AND tstzrange(p.fecha_hora_prog_retiro,
                                 fn_limite_devolucion(p.fecha_hora_prog_retiro, p.prorroga))
                       && tstzrange(p_inicio, p_fin))

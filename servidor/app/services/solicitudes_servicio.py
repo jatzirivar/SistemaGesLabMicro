@@ -45,8 +45,10 @@ def _validar_horario(db: Session, datos: DatosSolicitud, config: ConfiguracionLa
     retiro = datetime.combine(datos.fecha_retiro, hora.replace(second=0, microsecond=0), tzinfo=ZONA)
     limite = comun.limite_devolucion(retiro, False, config)
 
-    if hora.minute not in (0, 30) or hora.second:
-        errores.append("La hora de retiro debe ser en punto o y media (ej. 10:00 o 10:30)")
+    clases = comun.horarios_clase(config)
+    if hora.replace(second=0, microsecond=0) not in clases or hora.second:
+        lista = ", ".join(f"{h:%H:%M}" for h in clases)
+        errores.append(f"La hora de retiro debe ser al inicio de una clase: {lista}")
     if retiro <= ahora():
         errores.append("La fecha y hora de retiro ya pasaron")
 
@@ -122,7 +124,7 @@ def _revisar(db: Session, estudiante: Estudiante, datos: DatosSolicitud, bloquea
         elif equipo.id_estado_equipo == EstadoEquipo.EN_MANTENIMIENTO:
             motivo = "El equipo está en mantenimiento"
         elif _equipo_ocupado(db, codigo, retiro, limite):
-            motivo = "Ya está apartado o prestado en ese horario"
+            motivo = "Ya está agendado en ese horario (préstamo aprobado)"
         revision.append({"codigo_inventario": codigo, "nombre": equipo.nombre if equipo else None,
                          "disponible": motivo is None, "motivo": motivo})
         if motivo:
@@ -153,7 +155,41 @@ def reglas(db: Session) -> dict:
         "duracion_maxima": c.duracion_maxima, "limite_equipos": c.limite_equipos,
         "limite_por_modelo": c.limite_por_modelo, "tolerancia_retiro": c.tolerancia_retiro,
         "dias_inhabiles": [{"fecha": d.fecha_inhabil, "descripcion": d.descripcion} for d in proximos],
+        "horarios_retiro": comun.horarios_clase(c),
     }
+
+
+def disponibilidad_por_clase(db: Session, equipos: list[str], fecha) -> dict:
+    """Para cada clase del día: qué piezas del carrito están ocupadas (verde / amarillo / rojo)."""
+    config = comun.configuracion_lab(db)
+    motivo_dia = None
+    if fecha.isoweekday() not in config.dias_servicio:
+        motivo_dia = f"El laboratorio no da servicio en {_DIAS[fecha.isoweekday()]}"
+    elif (inhabil := db.get(DiaInhabil, fecha)) is not None:
+        motivo_dia = f"El {fecha:%d/%m/%Y} es día inhábil: {inhabil.descripcion}"
+    elif fecha < ahora().date():
+        motivo_dia = "La fecha ya pasó"
+
+    encontrados = {e.codigo_inventario: e for e in db.scalars(select(Equipo).where(Equipo.codigo_inventario.in_(equipos)))}
+    horarios = []
+    for hora in comun.horarios_clase(config):
+        retiro = datetime.combine(fecha, hora, tzinfo=ZONA)
+        limite = comun.limite_devolucion(retiro, False, config)
+        ocupados = []
+        if motivo_dia is None:
+            for codigo in equipos:
+                equipo = encontrados.get(codigo)
+                if equipo is None or equipo.id_estado_equipo == EstadoEquipo.DADO_DE_BAJA:
+                    ocupados.append({"codigo_inventario": codigo, "motivo": "Ya no existe en el inventario"})
+                elif equipo.id_estado_equipo == EstadoEquipo.EN_MANTENIMIENTO:
+                    ocupados.append({"codigo_inventario": codigo, "motivo": "En mantenimiento"})
+                elif _equipo_ocupado(db, codigo, retiro, limite):
+                    ocupados.append({"codigo_inventario": codigo, "motivo": "Agendado en ese horario"})
+        horarios.append({
+            "hora_retiro": hora, "hora_devolucion": limite.time(),
+            "pasado": retiro <= ahora(), "ocupados": ocupados, "total": len(equipos),
+        })
+    return {"fecha": fecha, "dia_valido": motivo_dia is None, "motivo_dia": motivo_dia, "horarios": horarios}
 
 
 def verificar_solicitud(db: Session, usuario: UsuarioSesion, datos: DatosSolicitud) -> dict:
