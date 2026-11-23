@@ -12,7 +12,7 @@ import Mensaje from '../../components/Mensaje'
 import Modal from '../../components/Modal'
 import { boton, Encabezado, Tarjeta } from '../../components/Pagina'
 import useApi from '../../hooks/useApi'
-import { DOMINIOS_ALUMNO, DOMINIOS_TODOS, errorCorreo, listaDominios } from '../../utils/correos'
+import { DOMINIOS_ALUMNO, DOMINIOS_ENCARGADO, errorCorreo, listaDominios } from '../../utils/correos'
 
 const MINIMO_ENCARGADO = 10
 
@@ -244,7 +244,7 @@ function AltaEncargado({ alCerrar, alTerminar }) {
   const [error, setError] = useState(null)
   const cambiar = (c) => (e) => setD((x) => ({ ...x, [c]: e.target.value }))
   const contrasenaOk = reglasContrasena(d.contrasena, MINIMO_ENCARGADO).every((r) => r.cumple)
-  const malCorreo = d.correo.trim() ? errorCorreo(d.correo, DOMINIOS_TODOS) : null
+  const malCorreo = d.correo.trim() ? errorCorreo(d.correo, DOMINIOS_ENCARGADO) : null
   const completo = d.nombre.trim() && d.apellido_pat.trim() && d.correo.trim() && !malCorreo && contrasenaOk && confirmacion === d.contrasena
 
   const guardar = async (e) => {
@@ -269,7 +269,7 @@ function AltaEncargado({ alCerrar, alTerminar }) {
           <Entrada id="en_am" etiqueta="Apellido materno (opcional)" value={d.apellido_mat} onChange={cambiar('apellido_mat')} />
         </div>
         <Entrada id="en_correo" type="email" etiqueta="Correo" value={d.correo} onChange={cambiar('correo')}
-          ayuda={`Solo correos ${listaDominios(DOMINIOS_TODOS)}`} error={malCorreo ?? errorDe(error, 'correo')} />
+          ayuda={`Solo correos ${listaDominios(DOMINIOS_ENCARGADO)}`} error={malCorreo ?? errorDe(error, 'correo')} />
         <CampoContrasena id="en_contrasena" etiqueta="Contraseña" value={d.contrasena} onChange={cambiar('contrasena')} ayuda={<ReglasContrasena valor={d.contrasena} minimo={MINIMO_ENCARGADO} />} />
         <CampoContrasena
           id="en_confirmacion"

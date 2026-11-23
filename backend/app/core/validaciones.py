@@ -41,7 +41,8 @@ def validar_formato_correo(valor: str) -> str:
 
 # Dominios de correo permitidos
 DOMINIOS_ALUMNO = ("gmail.com", "alumno.ipn.mx")                 # crear cuenta y registro manual
-DOMINIOS_TODOS = ("gmail.com", "ipn.mx", "alumno.ipn.mx")        # encargados y recuperar contraseña
+DOMINIOS_ENCARGADO = ("gmail.com", "ipn.mx")                     # alta de encargados
+DOMINIOS_TODOS = ("gmail.com", "ipn.mx", "alumno.ipn.mx")        # recuperar contraseña (alumnos y encargados)
 
 
 def dominio_permitido(correo: str, dominios: tuple[str, ...]) -> bool:

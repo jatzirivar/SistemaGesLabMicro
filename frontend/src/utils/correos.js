@@ -1,6 +1,7 @@
 // Dominios de correo permitidos (los mismos que revisa el servidor).
 export const DOMINIOS_ALUMNO = ['gmail.com', 'alumno.ipn.mx'] // crear cuenta y registro manual
-export const DOMINIOS_TODOS = ['gmail.com', 'ipn.mx', 'alumno.ipn.mx'] // encargados y recuperar contraseña
+export const DOMINIOS_ENCARGADO = ['gmail.com', 'ipn.mx'] // alta de encargados
+export const DOMINIOS_TODOS = ['gmail.com', 'ipn.mx', 'alumno.ipn.mx'] // recuperar contraseña (alumnos y encargados)
 
 export const PATRON_CORREO = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
 

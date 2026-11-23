@@ -7,7 +7,7 @@ from pydantic import BaseModel, field_validator, model_validator
 from app.core.constantes import LONGITUD_MINIMA_CONTRASENA_ENCARGADO
 from app.core.validaciones import (
     DOMINIOS_ALUMNO,
-    DOMINIOS_TODOS,
+    DOMINIOS_ENCARGADO,
     validar_boleta,
     validar_contrasena,
     validar_correo_dominio,
@@ -109,7 +109,7 @@ class RegistroEncargado(_Nombres):
     @field_validator("correo")
     @classmethod
     def _correo(cls, v: str) -> str:
-        return validar_correo_dominio(v, DOMINIOS_TODOS)
+        return validar_correo_dominio(v, DOMINIOS_ENCARGADO)
 
     @field_validator("contrasena")
     @classmethod
