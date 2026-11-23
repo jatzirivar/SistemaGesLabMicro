@@ -101,10 +101,6 @@ export default function Recuperar() {
           <button type="submit" disabled={!nuevaValida || !coinciden || enviando} className={boton}>
             {enviando ? 'Guardando...' : 'Guardar contraseña'}
           </button>
-          <button type="button" onClick={() => { setPaso(1); setError(null) }}
-            className="w-full text-center text-sm text-verde-700 hover:underline">
-            Usar otro correo
-          </button>
         </form>
       )}
       <p className="mt-6 text-center text-sm text-slate-600">
