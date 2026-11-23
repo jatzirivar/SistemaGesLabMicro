@@ -5,7 +5,7 @@ API REST en Python + FastAPI + PostgreSQL.
 ## Estructura
 
 ```
-servidor/
+backend/
 ├── app/
 │   ├── main.py        Punto de entrada: crea la app y registra las rutas
 │   ├── core/          Configuración (.env), conexión a BD y seguridad

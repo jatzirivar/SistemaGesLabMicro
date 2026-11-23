@@ -1,6 +1,6 @@
 """Crea una cuenta de Encargado de Laboratorio.
 
-Ejecutar desde la carpeta "servidor", con el entorno virtual activado:
+Ejecutar desde la carpeta "backend", con el entorno virtual activado:
     python -m scripts.crear_encargado
 """
 from getpass import getpass

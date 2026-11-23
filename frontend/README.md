@@ -17,7 +17,7 @@ Necesitas **dos terminales**:
 
 | Terminal | Carpeta | Comando | Dirección |
 |---|---|---|---|
-| 1 | `servidor` (con `.venv` activado) | `uvicorn app.main:app --reload` | http://127.0.0.1:8000 |
+| 1 | `backend` (con `.venv` activado) | `uvicorn app.main:app --reload` | http://127.0.0.1:8000 |
 | 2 | `frontend` | `npm run dev` | http://localhost:5173 |
 
 Abre **http://localhost:5173**. Las peticiones a `/api` y `/uploads` se reenvían

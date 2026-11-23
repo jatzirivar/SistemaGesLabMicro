@@ -7,8 +7,8 @@ services:
     runtime: python
     plan: free
     region: ohio
-    buildCommand: cd frontend && npm install && npm run build && cd ../servidor && pip install -r requirements.txt
-    startCommand: cd servidor && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/salud
     envVars:
       - key: PYTHON_VERSION

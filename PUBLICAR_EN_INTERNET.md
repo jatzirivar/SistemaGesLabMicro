@@ -18,9 +18,9 @@ Con esto el sistema abre desde cualquier celular, tableta o computadora, con cua
 ## 0. Antes de empezar
 
 1. Copia a tu proyecto:
-   - `servidor.zip` → reemplaza la carpeta `servidor` (versión **0.7.0**).
+   - `backend.zip` → reemplaza la carpeta `backend` (versión **0.7.0**).
    - `08_archivos.sql` → en la carpeta `Base de Datos`.
-   - `render.yaml` → en la **carpeta principal** del proyecto (junto a `servidor` y `frontend`).
+   - `render.yaml` → en la **carpeta principal** del proyecto (junto a `backend` y `frontend`).
 2. Revisa que en GitHub esté el archivo `frontend/package-lock.json` (Render lo usa para instalar).
 3. Sube todo a GitHub:
    ```powershell
@@ -58,7 +58,7 @@ pégalo en el editor y presiona **Run**. Uno por uno y en este orden:
 
 ## 3. Crear la cuenta del encargado en Neon (desde tu PC)
 
-En PowerShell, dentro de `servidor` y con el entorno virtual activado:
+En PowerShell, dentro de `backend` y con el entorno virtual activado:
 
 ```powershell
 $env:DATABASE_URL = "postgresql://neondb_owner:CLAVE@ep-xxxx.us-east-2.aws.neon.tech/neondb?sslmode=require"

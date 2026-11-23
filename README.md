@@ -35,7 +35,7 @@ SistemaGesLabMicro/
 │   ├── 06_correo_cualquier_dominio.sql┘
 │   └── 07_dias_inhabiles_2026_2027.sql  Días inhábiles del calendario IPN 2026-2027
 ├── Imágenes/           Diagramas y recursos del proyecto
-└── servidor/           Backend (API REST)
+└── backend/            Backend (API REST)
     ├── app/
     │   ├── core/       Configuración, conexión a BD, seguridad y errores
     │   ├── models/     Tablas de la BD como clases de Python (SQLAlchemy)
@@ -91,7 +91,7 @@ En pgAdmin:
 ### 4. Preparar el servidor
 
 ```
-cd servidor
+cd backend
 py -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
@@ -124,7 +124,7 @@ uvicorn app.main:app --reload
 Cada vez que vuelvas a trabajar, basta con:
 
 ```
-cd servidor
+cd backend
 .venv\Scripts\activate
 uvicorn app.main:app --reload
 ```
@@ -150,4 +150,4 @@ git push
 
 - Especificación de requisitos: SRS v6.0
 - Documento de diseño: v5
-- Detalle de las rutas de la API: [`servidor/README.md`](servidor/README.md)
+- Detalle de las rutas de la API: [`backend/README.md`](backend/README.md)
