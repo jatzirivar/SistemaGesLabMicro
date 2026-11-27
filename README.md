@@ -48,14 +48,14 @@ SistemaGesLabMicro/
 
 ## Avance
 
-| Módulo | Requisitos (SRS v6.0) | Estado |
+| Módulo | Requisitos | Estado |
 |---|---|---|
-| Autenticación y seguridad | 1 – 1.5, 2 | ✅ Terminado |
-| Catálogo, inventario y categorías | 4, 4.1, 8.8, 8.10 – 8.12 | ✅ Terminado |
-| Solicitudes, dictamen y notificaciones | 3 – 3.5, 5 – 7.3, 8.1, 8.2 | ✅ Terminado |
-| Ventanilla: entrega, devolución, incidencias y sanciones | 8 – 8.9 | ✅ Terminado |
-| Administración de alumnos, configuración y reportes PDF | 7.2, 8.13 – 8.15 | 🧪 En pruebas |
-| Frontend | — | ⏳ Pendiente |
+| Autenticación y seguridad | 1 – 1.5, 2 | Terminado |
+| Catálogo, inventario y categorías | 4, 4.1, 8.8, 8.10 – 8.12 | Terminado |
+| Solicitudes, dictamen y notificaciones | 3 – 3.5, 5 – 7.3, 8.1, 8.2 | Terminado |
+| Ventanilla: entrega, devolución, incidencias y sanciones | 8 – 8.9 | Terminado |
+| Administración de alumnos, configuración y reportes PDF | 7.2, 8.13 – 8.15 | En pruebas |
+| Frontend | — | Pendiente |
 
 ---
 
